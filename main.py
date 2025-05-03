@@ -13,20 +13,23 @@ from pgmpy.models import BayesianNetwork
 
 
 def main():
-    print("Hello from rb!")
+    print("Aprendiendo estructura de red bayesiana con Hill Climbing...")
 
     # Cargar datos
     df = pd.read_csv('data/df_processed_45.csv')
-
+    print(df.shape)
     # Convertir columnas de texto a categóricas
     object_cols = df.select_dtypes(include=['object']).columns
     for col in object_cols:
         df[col] = df[col].astype('category')
 
+    print("Filas antes de dropna:", df.shape[0])
     # Preprocesar: eliminar nulos y codificar
     df = df.dropna()
     for col in df.columns:
         df[col] = df[col].astype('category').cat.codes
+    
+    print("Filas después de dropna:", df.shape[0])
 
     # Aprendizaje de estructura con Hill Climbing
     est = HillClimbSearch(df)
