@@ -31,6 +31,8 @@ def main():
     # Aprendizaje de estructura con Hill Climbing
     est = HillClimbSearch(df)
     best_model = est.estimate(scoring_method=BicScore(df))
+    print("Mejor modelo encontrado por Hill Climbing:")
+    print(best_model.edges())
     model_hillClimb = BayesianNetwork(best_model.edges())
 
     # Guardar estructura aprendida
