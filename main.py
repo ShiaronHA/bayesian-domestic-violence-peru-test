@@ -10,39 +10,64 @@ from pgmpy.sampling import BayesianModelSampling
 from pgmpy.utils import get_example_model
 from pgmpy.estimators import HillClimbSearch, BicScore
 from pgmpy.models import BayesianNetwork
+from pgmpy.estimators import MmhcEstimator, BDeuScore
 
 
 def main():
-    print("Aprendiendo estructura de red bayesiana con Hill Climbing...")
+    print("Aprendiendo estructura de red bayesiana...")
 
     # Cargar datos
     df = pd.read_csv('data/df_processed.csv', delimiter=',')
-    print(df.shape)
+    print("Forma inicial del DataFrame:", df.shape)
+
     # Convertir columnas de texto a categóricas
     object_cols = df.select_dtypes(include=['object']).columns
     for col in object_cols:
         df[col] = df[col].astype('category')
 
+    # Preprocesar: eliminar nulos y codificar categorías
     print("Filas antes de dropna:", df.shape[0])
-    # Preprocesar: eliminar nulos y codificar
     df = df.dropna()
     for col in df.columns:
         df[col] = df[col].astype('category').cat.codes
-    
     print("Filas después de dropna:", df.shape[0])
 
-    # Aprendizaje de estructura con Hill Climbing
-    est = HillClimbSearch(df)
-    best_model = est.estimate(scoring_method=BicScore(df))
-    print("Mejor modelo encontrado por Hill Climbing:")
-    print(best_model.edges())
-    model_hillClimb = BayesianNetwork(best_model.edges())
+    # ===================
+    # Hill Climbing
+    # ===================
+    print("\nAprendiendo con Hill Climbing...")
+    hc_est = HillClimbSearch(df)
+    hc_model = hc_est.estimate(scoring_method=BicScore(df))
+    model_hc = BayesianNetwork(hc_model.edges())
 
-    # Guardar estructura aprendida
     with open('./uploads/model_structure_hillClimbing.pkl', 'wb') as f:
-        pickle.dump(model_hillClimb, f)
+        pickle.dump(model_hc, f)
+    print("Modelo Hill Climbing guardado en './uploads/model_structure_hillClimbing.pkl'")
+    print("Estructura Hill Climbing:", model_hc.edges())
 
-    print("Modelo estructural aprendido y guardado en './uploads/model_structure_hillClimbing.pkl'")
+    # ===================
+    # MMHC
+    # ===================
+    print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
+    mmhc = MmhcEstimator(df)
+
+    # Parte 1: Esqueleto
+    skeleton = mmhc.mmpc()
+    print("Esqueleto MMHC:", skeleton.edges())
+
+    # Parte 2: Orientación con Hill Climbing + White List del esqueleto
+    hc = HillClimbSearch(df)
+    model_mmhc = hc.estimate(
+        tabu_length=10,
+        white_list=skeleton.to_directed().edges(),
+        scoring_method=BDeuScore(df)
+    )
+    bn_mmhc = BayesianNetwork(model_mmhc.edges())
+
+    with open('./uploads/model_structure_mmhc.pkl', 'wb') as f:
+        pickle.dump(bn_mmhc, f)
+    print("Modelo MMHC guardado en './uploads/model_structure_mmhc.pkl'")
+    print("Estructura MMHC:", bn_mmhc.edges())
 
 
 if __name__ == "__main__":
