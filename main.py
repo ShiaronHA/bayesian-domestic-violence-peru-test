@@ -16,7 +16,7 @@ def main():
     print("Aprendiendo estructura de red bayesiana con Hill Climbing...")
 
     # Cargar datos
-    df = pd.read_csv('data/df_processed_45.csv', delimiter=',')
+    df = pd.read_csv('data/df_processed.csv', delimiter=',')
     print(df.shape)
     # Convertir columnas de texto a categóricas
     object_cols = df.select_dtypes(include=['object']).columns
