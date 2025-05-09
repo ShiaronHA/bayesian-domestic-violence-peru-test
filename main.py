@@ -27,7 +27,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         if scoring_method == 'bic':
             model = est.estimate(scoring_method=BicScore(df))
         elif scoring_method == 'k2':
-            model = est.estimate(scoring_method='k2', max_indegree=4, max_iter=int(1e4))
+            model = est.estimate(scoring_method='k2score', max_indegree=4, max_iter=int(1e4))
         else:
             raise ValueError("Scoring method no soportado para Hill Climbing.")
 
