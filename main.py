@@ -1,73 +1,72 @@
-from itertools import combinations
 import pandas as pd
-import matplotlib.pyplot as plt
-import networkx as nx
-import numpy as np
 import pickle
-
-from sklearn.metrics import f1_score
-from pgmpy.sampling import BayesianModelSampling
-from pgmpy.utils import get_example_model
-from pgmpy.estimators import HillClimbSearch, BicScore
 from pgmpy.models import BayesianNetwork
-from pgmpy.estimators import MmhcEstimator, BDeuScore
+from pgmpy.estimators import HillClimbSearch, BicScore, BDeuScore, MmhcEstimator
 
 
-def main():
-    print("Aprendiendo estructura de red bayesiana...")
-
-    # Cargar datos
-    df = pd.read_csv('data/df_processed.csv', delimiter=',')
+def preprocess_data(filepath):
+    df = pd.read_csv(filepath, delimiter=',')
     print("Forma inicial del DataFrame:", df.shape)
 
-    # Convertir columnas de texto a categóricas
     object_cols = df.select_dtypes(include=['object']).columns
     for col in object_cols:
         df[col] = df[col].astype('category')
 
-    # Preprocesar: eliminar nulos y codificar categorías
-    print("Filas antes de dropna:", df.shape[0])
     df = df.dropna()
     for col in df.columns:
         df[col] = df[col].astype('category').cat.codes
-    print("Filas después de dropna:", df.shape[0])
 
-    # ===================
-    # Hill Climbing
-    # ===================
-    print("\nAprendiendo con Hill Climbing...")
-    hc_est = HillClimbSearch(df)
-    hc_model = hc_est.estimate(scoring_method=BicScore(df))
-    model_hc = BayesianNetwork(hc_model.edges())
+    return df
 
-    with open('./uploads/model_structure_hillClimbing.pkl', 'wb') as f:
-        pickle.dump(model_hc, f)
-    print("Modelo Hill Climbing guardado en './uploads/model_structure_hillClimbing.pkl'")
-    print("Estructura Hill Climbing:", model_hc.edges())
 
-    # ===================
-    # MMHC
-    # ===================
-    print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
-    mmhc = MmhcEstimator(df)
+def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path=None):
+    if algorithm == 'hill_climb':
+        print(f"\nAprendiendo con Hill Climbing usando {scoring_method}...")
+        est = HillClimbSearch(df)
 
-    # Parte 1: Esqueleto
-    skeleton = mmhc.mmpc()
-    print("Esqueleto MMHC:", skeleton.edges())
+        if scoring_method == 'bic':
+            model = est.estimate(scoring_method=BicScore(df))
+        elif scoring_method == 'k2':
+            model = est.estimate(scoring_method='k2', max_indegree=4, max_iter=int(1e4))
+        else:
+            raise ValueError("Scoring method no soportado para Hill Climbing.")
 
-    # Parte 2: Orientación con Hill Climbing + White List del esqueleto
-    hc = HillClimbSearch(df)
-    model_mmhc = hc.estimate(
-        tabu_length=10,
-        white_list=skeleton.to_directed().edges(),
-        scoring_method=BDeuScore(df)
-    )
-    bn_mmhc = BayesianNetwork(model_mmhc.edges())
+        bn_model = BayesianNetwork(model.edges())
 
-    with open('./uploads/model_structure_mmhc.pkl', 'wb') as f:
-        pickle.dump(bn_mmhc, f)
-    print("Modelo MMHC guardado en './uploads/model_structure_mmhc.pkl'")
-    print("Estructura MMHC:", bn_mmhc.edges())
+    elif algorithm == 'mmhc':
+        print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
+        mmhc = MmhcEstimator(df)
+        skeleton = mmhc.mmpc()
+        hc = HillClimbSearch(df)
+        model = hc.estimate(
+            tabu_length=10,
+            white_list=skeleton.to_directed().edges(),
+            scoring_method=BDeuScore(df)
+        )
+        bn_model = BayesianNetwork(model.edges())
+    else:
+        raise ValueError("Algoritmo no soportado.")
+
+    if output_path:
+        with open(output_path, 'wb') as f:
+            pickle.dump(bn_model, f)
+        print(f"Modelo guardado en '{output_path}'")
+
+    print("Estructura aprendida:", bn_model.edges())
+    return bn_model
+
+
+def main():
+    df = preprocess_data('data/df_processed.csv')
+
+    learn_structure(df, algorithm='hill_climb', scoring_method='bic',
+                    output_path='./uploads/model_structure_29_hillClimbing_29.pkl')
+
+    learn_structure(df, algorithm='hill_climb', scoring_method='k2',
+                    output_path='./uploads/model_structure_29_hillClimbing_k2.pkl')
+
+    # learn_structure(df, algorithm='mmhc',
+    #                 output_path='./uploads/model_structure_29_mmhc.pkl')
 
 
 if __name__ == "__main__":
