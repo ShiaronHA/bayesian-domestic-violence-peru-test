@@ -1,8 +1,10 @@
 import pandas as pd
 import pickle
+import os
 from pgmpy.models import BayesianNetwork
 from pgmpy.estimators import HillClimbSearch, BicScore, BDeuScore, MmhcEstimator
-
+from pgmpy.estimators import MaximumLikelihoodEstimator
+from pgmpy.sampling import GibbsSampling
 
 def preprocess_data(filepath):
     df = pd.read_csv(filepath, delimiter=',')
@@ -13,13 +15,13 @@ def preprocess_data(filepath):
         df[col] = df[col].astype('category')
 
     df = df.dropna()
+    return df
+
+def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path=None):
+    
     for col in df.columns:
         df[col] = df[col].astype('category').cat.codes
 
-    return df
-
-
-def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path=None):
     if algorithm == 'hill_climb':
         print(f"\nAprendiendo con Hill Climbing usando {scoring_method}...")
         est = HillClimbSearch(df)
@@ -59,14 +61,47 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
 def main():
     df = preprocess_data('data/df_processed.csv')
 
-    learn_structure(df, algorithm='hill_climb', scoring_method='bic',
+    model = learn_structure(df, algorithm='hill_climb', scoring_method='bic',
                     output_path='./uploads/model_structure_29_hillClimbing_29.pkl')
 
-    learn_structure(df, algorithm='hill_climb', scoring_method='k2',
-                    output_path='./uploads/model_structure_29_hillClimbing_k2.pkl')
+    # learn_structure(df, algorithm='hill_climb', scoring_method='k2',
+    #                 output_path='./uploads/model_structure_29_hillClimbing_k2.pkl')
 
     # learn_structure(df, algorithm='mmhc',
     #                 output_path='./uploads/model_structure_29_mmhc.pkl')
+
+
+    #MLE
+    print("\nEstimando parámetros con MLE...") 
+    estimator = MaximumLikelihoodEstimator(model, df)
+    # Estimate all the CPDs for `new_model`
+    all_cpds = estimator.get_parameters(n_jobs=1)
+
+    # Add the estimated CPDs to the model.
+    model.add_cpds(*all_cpds)
+
+    # Guardar el modelo en la carpeta uploads con el formato BIF
+    model_file_path = os.path.join('./uploads', 'mi_modelo_red.bif')
+    model.write_bif(model_file_path)
+
+    print(f"El modelo ha sido guardado en: {model_file_path}")
+
+    #INFERENCIA
+    gibbs_chain = GibbsSampling(model)
+    
+    # Definir las evidencias
+    evidence = {
+        'VINCULO_AGRESOR_VICTIMA': 'VINCULO RELACIONAL DE PAREJA',
+        'ESTUDIA': 'NO',
+        'NIVEL_EDUCATIVO_VICTIMA': 'SECUNDARIA INCOMPLETA',
+        'AREA_RESIDENCIA_DOMICILIO': 'RURAL'
+    }
+
+    # Realizar la inferencia para la variable 'NIVEL_DE_RIESGO_VICTIMA'
+    samples = gibbs_chain.sample(variables=['NIVEL_DE_RIESGO_VICTIMA'], evidence=evidence, size=1000)
+
+    # Examinar los resultados de la inferencia
+    print(samples.head())   
 
 
 if __name__ == "__main__":

@@ -1,0 +1,149 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 900px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    <script>
+  network.on('selectNode', function(params) {
+    // Reset all node colors to skyblue
+    network.nodes.forEach(function(node) {
+      node.color = 'skyblue';
+    });
+
+    // Highlight the selected node and related nodes in turquoise
+    var selectedNode = params.nodes[0];
+    network.nodes[selectedNode].color = 'turquoise';
+
+    // Optionally, highlight edges as well (for visualization purposes)
+    network.edges.forEach(function(edge) {
+      if (edge.from === selectedNode || edge.to === selectedNode) {
+        edge.color = 'turquoise';
+      } else {
+        edge.color = 'gray';
+      }
+    });
+
+    network.redraw();
+  });
+</script></head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "CONDICION", "label": "CONDICION", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "NIVEL_DE_RIESGO_VICTIMA", "label": "NIVEL_DE_RIESGO_VICTIMA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "TRATAMIENTO_VICTIMA", "label": "TRATAMIENTO_VICTIMA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "ESTADO_AGRESOR_G", "label": "ESTADO_AGRESOR_G", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "FRECUENCIA_AGREDE", "label": "FRECUENCIA_AGREDE", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "HIJOS_VIVIENTES", "label": "HIJOS_VIVIENTES", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "REDES_FAM_SOC", "label": "REDES_FAM_SOC", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "VIOLENCIA_SEXUAL", "label": "VIOLENCIA_SEXUAL", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "ESTADO_AGRESOR_U_A", "label": "ESTADO_AGRESOR_U_A", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "ESTADO_VICTIMA_G", "label": "ESTADO_VICTIMA_G", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "VINCULO_AFECTIVO", "label": "VINCULO_AFECTIVO", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "SEXO_AGRESOR", "label": "SEXO_AGRESOR", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "EDAD_VICTIMA", "label": "EDAD_VICTIMA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "EDAD_AGRESOR", "label": "EDAD_AGRESOR", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "VINCULO_AGRESOR_VICTIMA", "label": "VINCULO_AGRESOR_VICTIMA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "ESTUDIA", "label": "ESTUDIA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "ESTADO_CIVIL_VICTIMA", "label": "ESTADO_CIVIL_VICTIMA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "TRABAJA_VICTIMA", "label": "TRABAJA_VICTIMA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "VIOLENCIA_PSICOLOGICA", "label": "VIOLENCIA_PSICOLOGICA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "VIOLENCIA_FISICA", "label": "VIOLENCIA_FISICA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "AGRESOR_VIVE_CASA_VICTIMA", "label": "AGRESOR_VIVE_CASA_VICTIMA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "VIOLENCIA_ECONOMICA", "label": "VIOLENCIA_ECONOMICA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "NIVEL_EDUCATIVO_AGRESOR", "label": "NIVEL_EDUCATIVO_AGRESOR", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "SEGURO_VICTIMA", "label": "SEGURO_VICTIMA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "ESTADO_VICTIMA_U_A", "label": "ESTADO_VICTIMA_U_A", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "AREA_RESIDENCIA_DOMICILIO", "label": "AREA_RESIDENCIA_DOMICILIO", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "LENGUA_MATERNA_VICTIMA", "label": "LENGUA_MATERNA_VICTIMA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "ETNIA_VICTIMA", "label": "ETNIA_VICTIMA", "shape": "dot", "size": 30}, {"color": "skyblue", "font": {"face": "arial", "size": 20}, "id": "NIVEL_EDUCATIVO_VICTIMA", "label": "NIVEL_EDUCATIVO_VICTIMA", "shape": "dot", "size": 30}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "gray", "from": "CONDICION", "to": "NIVEL_DE_RIESGO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "CONDICION", "to": "TRATAMIENTO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_DE_RIESGO_VICTIMA", "to": "ESTADO_AGRESOR_G", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_DE_RIESGO_VICTIMA", "to": "FRECUENCIA_AGREDE", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_DE_RIESGO_VICTIMA", "to": "HIJOS_VIVIENTES", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_DE_RIESGO_VICTIMA", "to": "REDES_FAM_SOC", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_DE_RIESGO_VICTIMA", "to": "VIOLENCIA_SEXUAL", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_DE_RIESGO_VICTIMA", "to": "TRATAMIENTO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "ESTADO_AGRESOR_G", "to": "ESTADO_AGRESOR_U_A", "width": 1}, {"arrows": "to", "color": "gray", "from": "ESTADO_AGRESOR_G", "to": "FRECUENCIA_AGREDE", "width": 1}, {"arrows": "to", "color": "gray", "from": "ESTADO_AGRESOR_G", "to": "ESTADO_VICTIMA_G", "width": 1}, {"arrows": "to", "color": "gray", "from": "HIJOS_VIVIENTES", "to": "VINCULO_AFECTIVO", "width": 1}, {"arrows": "to", "color": "gray", "from": "HIJOS_VIVIENTES", "to": "FRECUENCIA_AGREDE", "width": 1}, {"arrows": "to", "color": "gray", "from": "HIJOS_VIVIENTES", "to": "TRATAMIENTO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "REDES_FAM_SOC", "to": "VINCULO_AFECTIVO", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_SEXUAL", "to": "SEXO_AGRESOR", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "EDAD_AGRESOR", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "VINCULO_AGRESOR_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "ESTUDIA", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "ESTADO_CIVIL_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "TRABAJA_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "HIJOS_VIVIENTES", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "VIOLENCIA_PSICOLOGICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "VIOLENCIA_FISICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "AGRESOR_VIVE_CASA_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "CONDICION", "width": 1}, {"arrows": "to", "color": "gray", "from": "EDAD_VICTIMA", "to": "VIOLENCIA_ECONOMICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "EDAD_AGRESOR", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "SEXO_AGRESOR", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "VIOLENCIA_PSICOLOGICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "VIOLENCIA_FISICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "CONDICION", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "NIVEL_EDUCATIVO_AGRESOR", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "ESTADO_CIVIL_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "VIOLENCIA_SEXUAL", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "NIVEL_DE_RIESGO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "VIOLENCIA_ECONOMICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VINCULO_AGRESOR_VICTIMA", "to": "ESTADO_AGRESOR_U_A", "width": 1}, {"arrows": "to", "color": "gray", "from": "ESTUDIA", "to": "VINCULO_AGRESOR_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "ESTUDIA", "to": "REDES_FAM_SOC", "width": 1}, {"arrows": "to", "color": "gray", "from": "ESTUDIA", "to": "AGRESOR_VIVE_CASA_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "TRABAJA_VICTIMA", "to": "SEGURO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_PSICOLOGICA", "to": "VIOLENCIA_SEXUAL", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_PSICOLOGICA", "to": "ESTADO_AGRESOR_G", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_PSICOLOGICA", "to": "NIVEL_DE_RIESGO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_PSICOLOGICA", "to": "SEXO_AGRESOR", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_PSICOLOGICA", "to": "VIOLENCIA_ECONOMICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_PSICOLOGICA", "to": "HIJOS_VIVIENTES", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_PSICOLOGICA", "to": "FRECUENCIA_AGREDE", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_PSICOLOGICA", "to": "ESTADO_VICTIMA_U_A", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_FISICA", "to": "NIVEL_DE_RIESGO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_FISICA", "to": "VIOLENCIA_SEXUAL", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_FISICA", "to": "VIOLENCIA_PSICOLOGICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_FISICA", "to": "ESTADO_AGRESOR_U_A", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_FISICA", "to": "ESTADO_VICTIMA_U_A", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_FISICA", "to": "EDAD_AGRESOR", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_FISICA", "to": "SEXO_AGRESOR", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_FISICA", "to": "VIOLENCIA_ECONOMICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "AGRESOR_VIVE_CASA_VICTIMA", "to": "VINCULO_AGRESOR_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "AGRESOR_VIVE_CASA_VICTIMA", "to": "VIOLENCIA_FISICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "AGRESOR_VIVE_CASA_VICTIMA", "to": "ESTADO_AGRESOR_U_A", "width": 1}, {"arrows": "to", "color": "gray", "from": "AGRESOR_VIVE_CASA_VICTIMA", "to": "VIOLENCIA_PSICOLOGICA", "width": 1}, {"arrows": "to", "color": "gray", "from": "AGRESOR_VIVE_CASA_VICTIMA", "to": "ESTADO_CIVIL_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "AGRESOR_VIVE_CASA_VICTIMA", "to": "CONDICION", "width": 1}, {"arrows": "to", "color": "gray", "from": "AGRESOR_VIVE_CASA_VICTIMA", "to": "REDES_FAM_SOC", "width": 1}, {"arrows": "to", "color": "gray", "from": "AGRESOR_VIVE_CASA_VICTIMA", "to": "VINCULO_AFECTIVO", "width": 1}, {"arrows": "to", "color": "gray", "from": "VIOLENCIA_ECONOMICA", "to": "VIOLENCIA_SEXUAL", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_EDUCATIVO_AGRESOR", "to": "AREA_RESIDENCIA_DOMICILIO", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_EDUCATIVO_AGRESOR", "to": "ESTADO_AGRESOR_G", "width": 1}, {"arrows": "to", "color": "gray", "from": "ESTADO_AGRESOR_U_A", "to": "ESTADO_VICTIMA_U_A", "width": 1}, {"arrows": "to", "color": "gray", "from": "ESTADO_AGRESOR_U_A", "to": "SEXO_AGRESOR", "width": 1}, {"arrows": "to", "color": "gray", "from": "SEGURO_VICTIMA", "to": "HIJOS_VIVIENTES", "width": 1}, {"arrows": "to", "color": "gray", "from": "ESTADO_VICTIMA_U_A", "to": "ESTADO_VICTIMA_G", "width": 1}, {"arrows": "to", "color": "gray", "from": "LENGUA_MATERNA_VICTIMA", "to": "ETNIA_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "LENGUA_MATERNA_VICTIMA", "to": "NIVEL_EDUCATIVO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "LENGUA_MATERNA_VICTIMA", "to": "EDAD_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "LENGUA_MATERNA_VICTIMA", "to": "AGRESOR_VIVE_CASA_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_EDUCATIVO_VICTIMA", "to": "EDAD_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_EDUCATIVO_VICTIMA", "to": "NIVEL_EDUCATIVO_AGRESOR", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_EDUCATIVO_VICTIMA", "to": "ESTUDIA", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_EDUCATIVO_VICTIMA", "to": "AREA_RESIDENCIA_DOMICILIO", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_EDUCATIVO_VICTIMA", "to": "TRABAJA_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "NIVEL_EDUCATIVO_VICTIMA", "to": "SEGURO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "AREA_RESIDENCIA_DOMICILIO", "to": "SEGURO_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "AREA_RESIDENCIA_DOMICILIO", "to": "TRABAJA_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "AREA_RESIDENCIA_DOMICILIO", "to": "ETNIA_VICTIMA", "width": 1}, {"arrows": "to", "color": "gray", "from": "AREA_RESIDENCIA_DOMICILIO", "to": "VIOLENCIA_FISICA", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"nodes": {"borderWidth": 1, "shadow": true}, "edges": {"color": {"inherit": false}, "smooth": false}, "physics": {"barnesHut": {"gravitationalConstant": -30000, "centralGravity": 0.3, "springLength": 250, "springConstant": 0.04, "damping": 0.09}, "minVelocity": 0.75, "solver": "barnesHut"}, "interaction": {"hover": true, "navigationButtons": true, "tooltipDelay": 200}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
