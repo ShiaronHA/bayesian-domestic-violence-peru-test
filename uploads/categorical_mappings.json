@@ -1,0 +1,172 @@
+{
+    "CONDICION": {
+        "0": "CONTINUADOR",
+        "1": "DERIVADO",
+        "2": "NUEVO",
+        "3": "REINCIDENTE",
+        "4": "REINGRESO"
+    },
+    "EDAD_VICTIMA": {
+        "0": "ADOLESCENCIA",
+        "1": "ADULTO",
+        "2": "ADULTO JOVEN",
+        "3": "ADULTO MAYOR",
+        "4": "INFANCIA",
+        "5": "JOVEN",
+        "6": "PRIMERA INFANCIA"
+    },
+    "LENGUA_MATERNA_VICTIMA": {
+        "0": "AIMARA",
+        "1": "CASTELLANO",
+        "2": "OTRAS",
+        "3": "QUECHUA"
+    },
+    "ETNIA_VICTIMA": {
+        "0": "AIMARA",
+        "1": "BLANCO",
+        "2": "MESTIZO",
+        "3": "NEGRO, MORENO, ZAMBO, MULATO O AFRODESCENDIENTE O PARTE DEL PUEBLO AFROPERUANO",
+        "4": "NO SABE/NO RESPONDE",
+        "5": "OTRO",
+        "6": "QUECHUA"
+    },
+    "AREA_RESIDENCIA_DOMICILIO": {
+        "0": "RURAL",
+        "1": "URBANO"
+    },
+    "ESTADO_CIVIL_VICTIMA": {
+        "0": "CASADO/A",
+        "1": "DIVORCIADO/A",
+        "2": "SOLTERO/A",
+        "3": "VIUDO/A"
+    },
+    "NIVEL_EDUCATIVO_VICTIMA": {
+        "0": "BASICA ESPECIAL",
+        "1": "INICIAL",
+        "2": "MAESTRIA / DOCTORADO",
+        "3": "PRIMARIA COMPLETA",
+        "4": "PRIMARIA INCOMPLETA",
+        "5": "SECUNDARIA COMPLETA",
+        "6": "SECUNDARIA INCOMPLETA",
+        "7": "SIN NIVEL",
+        "8": "SUPERIOR TECNICO COMPLETO",
+        "9": "SUPERIOR TECNICO INCOMPLETO",
+        "10": "SUPERIOR UNIVERSITARIO COMPLETO",
+        "11": "SUPERIOR UNIVERSITARIO INCOMPLETO"
+    },
+    "TRABAJA_VICTIMA": {
+        "0": "NO",
+        "1": "SI"
+    },
+    "VINCULO_AGRESOR_VICTIMA": {
+        "0": "SIN VINCULO RELACIONAL DE PAREJA NI FAMILIAR",
+        "1": "VINCULO RELACIONAL DE PAREJA",
+        "2": "VINCULO RELACIONAL FAMILIAR"
+    },
+    "AGRESOR_VIVE_CASA_VICTIMA": {
+        "0": "ESPORADICAMENTE, VA DE VEZ EN CUANDO",
+        "1": "NO",
+        "2": "SI"
+    },
+    "EDAD_AGRESOR": {
+        "0": "ADOLESCENCIA",
+        "1": "ADULTO",
+        "2": "ADULTO JOVEN",
+        "3": "ADULTO MAYOR",
+        "4": "JOVEN"
+    },
+    "SEXO_AGRESOR": {
+        "0": "HOMBRE",
+        "1": "MUJER"
+    },
+    "NIVEL_EDUCATIVO_AGRESOR": {
+        "0": "BASICA ESPECIAL",
+        "1": "INICIAL",
+        "2": "MAESTRIA / DOCTORADO",
+        "3": "PRIMARIA COMPLETA",
+        "4": "PRIMARIA INCOMPLETA",
+        "5": "SECUNDARIA COMPLETA",
+        "6": "SECUNDARIA INCOMPLETA",
+        "7": "SIN NIVEL",
+        "8": "SUPERIOR TECNICO COMPLETO",
+        "9": "SUPERIOR TECNICO INCOMPLETO",
+        "10": "SUPERIOR UNIVERSITARIO COMPLETO",
+        "11": "SUPERIOR UNIVERSITARIO INCOMPLETO"
+    },
+    "FRECUENCIA_AGREDE": {
+        "0": "DIARIO",
+        "1": "INTERMITENTE",
+        "2": "MENSUAL",
+        "3": "QUINCENAL",
+        "4": "SEMANAL"
+    },
+    "NIVEL_DE_RIESGO_VICTIMA": {
+        "0": "LEVE",
+        "1": "MODERADO",
+        "2": "SEVERO"
+    },
+    "ESTUDIA": {
+        "0": "NO",
+        "1": "SI"
+    },
+    "ESTADO_AGRESOR_U_A": {
+        "0": "AMBOS (EFECTOS DE ALCOHOL Y DROGAS)",
+        "1": "EFECTOS DE ALCOHOL",
+        "2": "EFECTOS DE DROGAS",
+        "3": "SOBRIO/A"
+    },
+    "ESTADO_AGRESOR_G": {
+        "0": "AMBOS (EFECTOS DE ALCOHOL Y DROGAS)",
+        "1": "EFECTOS DE ALCOHOL",
+        "2": "EFECTOS DE DROGAS",
+        "3": "SOBRIO/A"
+    },
+    "ESTADO_VICTIMA_U_A": {
+        "0": "AMBOS (EFECTOS DE ALCOHOL Y DROGAS)",
+        "1": "EFECTOS DE ALCOHOL",
+        "2": "EFECTOS DE DROGAS",
+        "3": "SOBRIO/A"
+    },
+    "ESTADO_VICTIMA_G": {
+        "0": "AMBOS (EFECTOS DE ALCOHOL Y DROGAS)",
+        "1": "EFECTOS DE ALCOHOL",
+        "2": "EFECTOS DE DROGAS",
+        "3": "SOBRIO/A"
+    },
+    "REDES_FAM_SOC": {
+        "0": "NO",
+        "1": "SI"
+    },
+    "SEGURO_VICTIMA": {
+        "0": "NO",
+        "1": "SI"
+    },
+    "TRATAMIENTO_VICTIMA": {
+        "0": "NO",
+        "1": "SI"
+    },
+    "VINCULO_AFECTIVO": {
+        "0": "NO",
+        "1": "SI"
+    },
+    "VIOLENCIA_ECONOMICA": {
+        "0": "NO",
+        "1": "SI"
+    },
+    "VIOLENCIA_PSICOLOGICA": {
+        "0": "NO",
+        "1": "SI"
+    },
+    "VIOLENCIA_FISICA": {
+        "0": "NO",
+        "1": "SI"
+    },
+    "VIOLENCIA_SEXUAL": {
+        "0": "NO",
+        "1": "SI"
+    },
+    "HIJOS_VIVIENTES": {
+        "0": "NO",
+        "1": "SI"
+    }
+}
