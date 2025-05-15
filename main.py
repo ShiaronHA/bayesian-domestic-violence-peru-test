@@ -50,9 +50,10 @@ def learn_structure(df, algorithm='hill_climb', sampling = None, scoring_method=
         skeleton = mmhc.mmpc()
         hc = HillClimbSearch(df_sampled)
         model = hc.estimate(
-            tabu_length=10,
+            tabu_length=5,
             white_list=skeleton.to_directed().edges(),
-            scoring_method=BDeuScore(df_sampled)
+            scoring_method=BDeuScore(df_sampled),
+            max_indegree=3
         )
         bn_model = BayesianNetwork(model.edges())
     else:
