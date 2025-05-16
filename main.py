@@ -88,8 +88,8 @@ def main():
         ('hill_climb', 'bic'),
         ('hill_climb', 'k2'),
         ('hill_climb', 'bdeu'),
-        ('pc', None)#,
-        #('mmhc', None)
+        ('pc', None),
+        ('mmhc', None)
     ]
     sample_sizes = [200,400]
     results = []
@@ -112,11 +112,12 @@ def main():
 
             score = structure_score(model, df_filtered, scoring_method="bdeu")
             print("Calidad de red BDeue:", score)
-            elapsed_time = time.time()  - start_time
-            key = f"{algorithm}_{score_method if algorithm =='hill_climb' else 'BDeu'}"
+            elapsed_time = time.time() - start_time
+            key = f"{algorithm}_{score_method if algorithm =='hill_climb' else 'BDeu'}_{sample_size}"
             trained_models[key] = model
             results.append({'Model': model,
                             'BDeu_Score': score,
+                            'Score_method': score_method,
                             'Algorithm': algorithm,
                             'Sample_Size': sample_size,
                             'Training_Time_Seconds': elapsed_time,
@@ -134,7 +135,8 @@ def main():
 
     # Guardar mejor modelo
     best_row = results_df.sort_values(by='BDeu_Score', ascending=False).iloc[0]
-    best_model_key = best_row['Model']
+    # Corregir la asignación de `best_model_key` para que coincida con las claves del diccionario `trained_models`
+    best_model_key = best_row['Algorithm'] + '_' + (best_row['Score_method'] if best_row['Algorithm'] == 'hill_climb' else 'BDeu'+ '_'+ str(best_row['Sample_Size']))
     best_score = best_row['BDeu_Score']
     best_model = trained_models[best_model_key]
 
