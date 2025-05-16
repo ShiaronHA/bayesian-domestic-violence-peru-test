@@ -87,7 +87,7 @@ def main():
     ]
     	
 
-    sample_sizes = [0, 100, 1000, 2000, 10000]
+    sample_sizes = [1, 100, 1000, 2000]
     results = []
     trained_models = {}
 
@@ -132,7 +132,7 @@ def main():
     # Guardar mejor modelo
     best_row = results_df.sort_values(by='BDeu_Score', ascending=False).iloc[0]
     # Corregir la asignación de `best_model_key` para que coincida con las claves del diccionario `trained_models`
-    best_model_key = best_row['Algorithm'] + '_' + (best_row['Score_method'] if best_row['Algorithm'] == 'hill_climb' else 'BDeu'+ '_'+ str(best_row['Sample_Size']))
+    best_model_key = f"{best_row['Algorithm']}_{best_row['Score_method']}_{int(best_row['Sample_Size'])}"
     best_score = best_row['BDeu_Score']
     best_model = trained_models[best_model_key]
 

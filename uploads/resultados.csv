@@ -1,0 +1,21 @@
+Model,BDeu_Score,Score_method,Algorithm,Sample_Size,Training_Time_Seconds,Number_of_Edges
+BayesianNetwork with 0 nodes and 0 edges,0.0,bic,hill_climb,1,0.702369213104248,0
+BayesianNetwork with 0 nodes and 0 edges,0.0,k2,hill_climb,1,0.7626738548278809,0
+BayesianNetwork with 0 nodes and 0 edges,0.0,bdeu,hill_climb,1,0.6997227668762207,0
+BayesianNetwork with 0 nodes and 0 edges,0.0,,pc,1,0.13964438438415527,0
+BayesianNetwork with 19 nodes and 15 edges,-895.2608040320167,bic,hill_climb,100,1.2900962829589844,19
+BayesianNetwork with 29 nodes and 53 edges,-1851.7091165074232,k2,hill_climb,100,2.6037988662719727,29
+BayesianNetwork with 28 nodes and 65 edges,-1539.1920527033774,bdeu,hill_climb,100,2.9193599224090576,28
+BayesianNetwork with 15 nodes and 8 edges,-1182.2199588153785,,pc,100,0.29486918449401855,15
+BayesianNetwork with 26 nodes and 26 edges,-15146.629423642245,bic,hill_climb,1000,1.742058277130127,26
+BayesianNetwork with 28 nodes and 44 edges,-15529.294840709521,k2,hill_climb,1000,2.3851706981658936,28
+BayesianNetwork with 29 nodes and 51 edges,-16247.767567540443,bdeu,hill_climb,1000,2.708378553390503,29
+BayesianNetwork with 25 nodes and 20 edges,-15188.275510476911,,pc,1000,6.466757535934448,25
+BayesianNetwork with 26 nodes and 28 edges,-29438.668323427482,bic,hill_climb,2000,1.9355683326721191,26
+BayesianNetwork with 27 nodes and 41 edges,-29731.72744686236,k2,hill_climb,2000,2.1969261169433594,27
+BayesianNetwork with 29 nodes and 47 edges,-31863.685098656235,bdeu,hill_climb,2000,2.543229818344116,29
+BayesianNetwork with 24 nodes and 18 edges,-29819.25754278628,,pc,2000,18.696446180343628,24
+BayesianNetwork with 29 nodes and 42 edges,-156992.0332566925,bic,hill_climb,10000,2.4684858322143555,29
+BayesianNetwork with 29 nodes and 56 edges,-156660.21131613688,k2,hill_climb,10000,3.0347015857696533,29
+BayesianNetwork with 29 nodes and 58 edges,-156496.85945188452,bdeu,hill_climb,10000,3.2676286697387695,29
+BayesianNetwork with 26 nodes and 27 edges,-145017.3257239336,,pc,10000,344.02389454841614,26
