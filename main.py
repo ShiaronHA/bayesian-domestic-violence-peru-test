@@ -3,7 +3,7 @@ import pickle
 import os
 import json
 from pgmpy.models import BayesianNetwork
-from pgmpy.estimators import HillClimbSearch, BicScore, BDeuScore, MmhcEstimator
+from pgmpy.estimators import HillClimbSearch, BicScore, BDeuScore, MmhcEstimator, PC
 from pgmpy.inference import BeliefPropagation
 from pgmpy.readwrite import BIFWriter
 from pgmpy.estimators import BayesianEstimator
@@ -20,7 +20,7 @@ def preprocess_data(filepath):
     	col: dict(enumerate(df[col].cat.categories))
         for col in df.select_dtypes(['category']).columns
     }
-    print(df_encoded)		
+    print(df_encoded)
     return df_encoded, category_mappings
 
 def learn_structure(df, algorithm='hill_climb', sampling = None, scoring_method=None, output_path=None):
@@ -39,6 +39,12 @@ def learn_structure(df, algorithm='hill_climb', sampling = None, scoring_method=
             raise ValueError("Scoring method no soportado para Hill Climbing.")
 
         bn_model = BayesianNetwork(model.edges())
+
+    elif algorithm == 'pc':
+        print(f"\nAprendiendo con PC...")
+        est = PC(df)
+	model = est.estimate(ci_test='chi_square')
+	bn_model = BayesianNetwork(model.edges())
 
     elif algorithm == 'mmhc':
         print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
@@ -80,9 +86,9 @@ def learn_structure(df, algorithm='hill_climb', sampling = None, scoring_method=
 def main():
     df, dict = preprocess_data('data/df_processed.csv')
 
-    algorithms_to_experiment = ['hill_climb', 'mmhc']
-    scoring_methods = ['bdeu','bic'] #k2,bic
-    sampling_size = 50000
+    algorithms_to_experiment = ['hill_climb','pc']
+    scoring_methods = ['bdeu','bic','k2'] #k2,bic
+    sampling_size = 1000
     results = []
     trained_models = {}
 
@@ -96,8 +102,11 @@ def main():
                                         output_path=f'./uploads/model_structure_29_{algorithm}_{scoring_method}.pkl')
         elif algorithm == 'mmhc':
             model, score = learn_structure(df, algorithm='mmhc', sampling=sampling_size,
-                                    output_path=f'./uploads/model_structure_29_{algorithm}.pkl')
-        key = f"{algorithm}_{scoring_methods if algorithm =='hill_climb' else 'BDeu'}"
+                                    output_path=f'./uploads/model_structure_29_{algorithm}_{sampling_size}.pkl')
+        elif algorithmn == 'pc':
+	    model, score = learn_structure(df, algorithm='pc',
+				    output_path=f'./uploads/model_structure_29_{algorithm}.pkl')
+	key = f"{algorithm}_{scoring_methods if algorithm =='hill_climb' else 'BDeu'}"
         trained_models[key] = model
         results.append({'Model': model, 'BDeu_Score': score})
 
