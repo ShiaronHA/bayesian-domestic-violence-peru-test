@@ -62,11 +62,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
     else:
         raise ValueError("Algoritmo no soportado.")
 
-    if output_path:
-        with open(output_path, 'wb') as f:
-            pickle.dump(bn_model, f)
-        print(f"Modelo guardado en '{output_path}'")
-
+    
     print("Estructura aprendida:", bn_model.edges())
     
     #Evaluacion de modelo : structure_score
@@ -88,10 +84,11 @@ def main():
         ('hill_climb', 'bic'),
         ('hill_climb', 'k2'),
         ('hill_climb', 'bdeu'),
-        ('pc', None),
-        ('mmhc', None)
+        ('pc', None)
     ]
-    sample_sizes = [200,400]
+    	
+
+    sample_sizes = [0, 100, 1000, 2000, 10000]
     results = []
     trained_models = {}
 
@@ -108,7 +105,7 @@ def main():
             # Asegurarse de que las columnas del DataFrame coincidan con las variables del modelo
             model_variables = set(var for edge in model.edges() for var in edge)
             # Convertir el conjunto de variables del modelo a una lista antes de usarlo como indexador
-            df_filtered = sample_data[list(model_variables)]
+            df_filtered = df[list(model_variables)]
 
             score = structure_score(model, df_filtered, scoring_method="bdeu")
             print("Calidad de red BDeue:", score)
