@@ -79,7 +79,6 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
 def main():
     df, dict = preprocess_data('data/df_processed.csv')
 
-    algorithms_to_experiment = ['hill_climb','pc']
     algorithms_to_experiment = [
         ('hill_climb', 'bic'),
         ('hill_climb', 'k2'),
@@ -95,7 +94,7 @@ def main():
     for sample_size in sample_sizes:
         sample_data = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
         print("Forma de muestra del DataFrame:", sample_data.shape)
-	    # Aprendizaje de la estructura
+	# Aprendizaje de la estructura
         for algorithm,score_method  in algorithms_to_experiment:
             print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
             start_time = time.time()
@@ -105,7 +104,7 @@ def main():
             # Asegurarse de que las columnas del DataFrame coincidan con las variables del modelo
             model_variables = set(var for edge in model.edges() for var in edge)
             # Convertir el conjunto de variables del modelo a una lista antes de usarlo como indexador
-            df_filtered = df[list(model_variables)]
+            df_filtered = sample_data[list(model_variables)]
 
             score = structure_score(model, df_filtered, scoring_method="bdeu")
             print("Calidad de red BDeue:", score)
