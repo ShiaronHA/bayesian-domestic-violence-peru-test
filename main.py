@@ -104,8 +104,8 @@ def main():
             start_time = time.time()
             model = learn_structure(df=sample_data, algorithm=algorithm, scoring_method=score_method,
                                             output_path=f'./uploads/model_structure_29_{algorithm}_{score_method if algorithm =='hill_climb' else 'BDeu'}_{sample_size}.pkl')
-	    score = structure_score(bn_model, df, scoring_method="bdeu")
-	    print("Calidad de red BDeu Score:", score)
+            score = structure_score(model, df, scoring_method="bdeu")
+            print("Calidad de red BDeu Score:", score)
        
             elapsed_time = time.time() - start_time
             key = f"{algorithm}_{score_method if algorithm =='hill_climb' else 'BDeu'}"
