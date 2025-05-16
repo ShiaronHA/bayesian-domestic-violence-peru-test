@@ -2,6 +2,7 @@ import pandas as pd
 import pickle
 import os
 import json
+import time
 from pgmpy.models import BayesianNetwork
 from pgmpy.estimators import HillClimbSearch, BicScore, BDeuScore, MmhcEstimator, PC
 from pgmpy.inference import BeliefPropagation
@@ -23,7 +24,7 @@ def preprocess_data(filepath):
     print(df_encoded)
     return df_encoded, category_mappings
 
-def learn_structure(df, algorithm='hill_climb', sampling = None, scoring_method=None, output_path=None):
+def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path=None):
 
     if algorithm == 'hill_climb':
         print(f"\nAprendiendo con Hill Climbing usando {scoring_method}...")
@@ -48,17 +49,13 @@ def learn_structure(df, algorithm='hill_climb', sampling = None, scoring_method=
 
     elif algorithm == 'mmhc':
         print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
-        print("\nGeneramos sampling")
-        # Generar un muestreo aleatorio de la base de datos
-        df_sampled = df.sample(n=sampling, random_state=42)
-
-        mmhc = MmhcEstimator(df_sampled)
+        mmhc = MmhcEstimator(df)
         skeleton = mmhc.mmpc()
-        hc = HillClimbSearch(df_sampled)
+        hc = HillClimbSearch(df)
         model = hc.estimate(
             tabu_length=5,
             white_list=skeleton.to_directed().edges(),
-            scoring_method=BDeuScore(df_sampled),
+            scoring_method=BDeuScore(df),
             max_indegree=3
         )
         bn_model = BayesianNetwork(model.edges())
@@ -87,40 +84,50 @@ def main():
     df, dict = preprocess_data('data/df_processed.csv')
 
     algorithms_to_experiment = ['hill_climb','pc']
-    scoring_methods = ['bdeu','bic','k2'] #k2,bic
-    sampling_size = 1000
+    algorithms_to_experiment = [
+        ('hill_climb', 'bic'),
+        ('hill_climb', 'k2'),
+        ('hill_climb', 'bdeu'),
+        ('pc', None)#,
+        #('mmhc', None)
+    ]
+    sample_sizes = [200,400]
     results = []
     trained_models = {}
 
-    # Aprendizaje de la estructura
-    for algorithm in algorithms_to_experiment:
-        print(f"\nAprendiendo estructura con {algorithm}...")
-        if algorithm == 'hill_climb':
-            for scoring_method in scoring_methods:
-                print(f"\nUsando {scoring_method} como método de puntuación...")
-                model, score = learn_structure(df, algorithm='hill_climb', scoring_method=scoring_method,
-                                        output_path=f'./uploads/model_structure_29_{algorithm}_{scoring_method}.pkl')
-        elif algorithm == 'mmhc':
-            model, score = learn_structure(df, algorithm='mmhc', sampling=sampling_size,
-                                    output_path=f'./uploads/model_structure_29_{algorithm}_{sampling_size}.pkl')
-        elif algorithm == 'pc':
-            model, score = learn_structure(df, algorithm='pc', output_path=f'./uploads/model_structure_29_{algorithm}.pkl')
-        key = f"{algorithm}_{scoring_methods if algorithm =='hill_climb' else 'BDeu'}"
-        trained_models[key] = model
-        results.append({'Model': model, 'BDeu_Score': score})
+    for sample_size in sample_sizes:
+        sample_data = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
+        # Aprendizaje de la estructura
+        for algorithm,score_method  in algorithms_to_experiment:
+            print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
+            start_time = time.time()
+            if algorithm == 'hill_climb':
+                print(f"\nUsando {score_method} como método de puntuación...")
+                model, score = learn_structure(sample_data, algorithm=algorithm, scoring_method=score_method,
+                                            output_path=f'./uploads/model_structure_29_{algorithm}_{score_method if algorithm =='hill_climb' else 'BDeu'}_{sample_size}.pkl')
+        
+            elapsed_time = time.time() - start_time
+            key = f"{algorithm}_{score_method if algorithm =='hill_climb' else 'BDeu'}"
+            trained_models[key] = model
+            results.append({'Model': model,
+                            'BDeu_Score': score,
+                            'Algorithm': algorithm,
+                            'Sample_Size': sample_size,
+                            'Training_Time_Seconds': elapsed_time,
+                            'Number_of_Edges': len(model)
+                            })
 
-
-    comparison_df = pd.DataFrame(results)
+    results_df = pd.DataFrame(results)
     print("\nTabla comparativa de resultados:") 
-    print(comparison_df.to_string(index=False))
+    print(results_df.to_string(index=False))
 
     # Guardar los resultados en un archivo CSV
-    comparison_file_path = os.path.join('./uploads', 'comparacion_resultados.csv')
-    comparison_df.to_csv(comparison_file_path, index=False)
+    comparison_file_path = os.path.join('./uploads', 'resultados.csv')
+    results_df.to_csv(comparison_file_path, index=False)
     print(f"Resultados guardados en: {comparison_file_path}")
 
     # Guardar mejor modelo
-    best_row = comparison_df.sort_values(by='BDeu_Score', ascending=False).iloc[0]
+    best_row = results_df.sort_values(by='BDeu_Score', ascending=False).iloc[0]
     best_model_key = best_row['Model']
     best_score = best_row['BDeu_Score']
     best_model = trained_models[best_model_key]
