@@ -107,7 +107,8 @@ def main():
 
             # Asegurarse de que las columnas del DataFrame coincidan con las variables del modelo
             model_variables = set(var for edge in model.edges() for var in edge)
-            df_filtered = sample_data[model_variables]
+            # Convertir el conjunto de variables del modelo a una lista antes de usarlo como indexador
+            df_filtered = sample_data[list(model_variables)]
 
             score = structure_score(model, df_filtered, scoring_method="bdeu")
             print("Calidad de red BDeue:", score)
