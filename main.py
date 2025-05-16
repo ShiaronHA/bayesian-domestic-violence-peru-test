@@ -75,9 +75,9 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
     # score_value = scoring.score(bn_model)
     # print("Calidad de red BIC Score:", score_value)
 
-    score = structure_score(bn_model, df, scoring_method="bdeu")
-    print("Calidad de red BDeu Score:", score)
-    return bn_model, score
+    #score = structure_score(bn_model, df, scoring_method="bdeu")
+    #print("Calidad de red BDeu Score:", score)
+    return bn_model
 
 
 def main():
@@ -97,15 +97,16 @@ def main():
 
     for sample_size in sample_sizes:
         sample_data = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
-        # Aprendizaje de la estructura
+        print("Forma de muestra del DataFrame:", sample_data.shape)
+	# Aprendizaje de la estructura
         for algorithm,score_method  in algorithms_to_experiment:
             print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
             start_time = time.time()
-            if algorithm == 'hill_climb':
-                print(f"\nUsando {score_method} como método de puntuación...")
-                model, score = learn_structure(sample_data, algorithm=algorithm, scoring_method=score_method,
+            model = learn_structure(df=sample_data, algorithm=algorithm, scoring_method=score_method,
                                             output_path=f'./uploads/model_structure_29_{algorithm}_{score_method if algorithm =='hill_climb' else 'BDeu'}_{sample_size}.pkl')
-        
+	    score = structure_score(bn_model, df, scoring_method="bdeu")
+	    print("Calidad de red BDeu Score:", score)
+       
             elapsed_time = time.time() - start_time
             key = f"{algorithm}_{score_method if algorithm =='hill_climb' else 'BDeu'}"
             trained_models[key] = model
