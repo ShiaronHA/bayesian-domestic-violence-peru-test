@@ -34,7 +34,7 @@ def learn_structure(df, algorithm='hill_climb', sampling = None, scoring_method=
         elif scoring_method == 'bdeu':
             model = est.estimate(scoring_method=BDeuScore(df), max_indegree=4, max_iter=int(1e4))
         elif scoring_method == 'k2':
-            model = est.estimate(scoring_method='k2', max_indegree=4, max_iter=int(1e4))
+            model = est.estimate(scoring_method='k2score', max_indegree=4, max_iter=int(1e4))
         else:
             raise ValueError("Scoring method no soportado para Hill Climbing.")
 
@@ -104,8 +104,7 @@ def main():
             model, score = learn_structure(df, algorithm='mmhc', sampling=sampling_size,
                                     output_path=f'./uploads/model_structure_29_{algorithm}_{sampling_size}.pkl')
         elif algorithm == 'pc':
-            model, score = learn_structure(df, algorithm='pc',
-				    output_path=f'./uploads/model_structure_29_{algorithm}.pkl')
+            model, score = learn_structure(df, algorithm='pc', output_path=f'./uploads/model_structure_29_{algorithm}.pkl')
         key = f"{algorithm}_{scoring_methods if algorithm =='hill_climb' else 'BDeu'}"
         trained_models[key] = model
         results.append({'Model': model, 'BDeu_Score': score})
