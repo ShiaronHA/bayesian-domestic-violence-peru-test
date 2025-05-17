@@ -50,13 +50,14 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
     elif algorithm == 'mmhc':
         print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
         mmhc = MmhcEstimator(df)
-        skeleton = mmhc.mmpc()
+        skeleton = mmhc.mmpc(max_cond_vars = 4)
         hc = HillClimbSearch(df)
         model = hc.estimate(
             tabu_length=5,
             white_list=skeleton.to_directed().edges(),
             scoring_method=BDeuScore(df),
-            max_indegree=3
+            max_indegree=3,
+	    max_iter=1500
         )
         bn_model = BayesianNetwork(model.edges())
     else:
@@ -83,11 +84,12 @@ def main():
         ('hill_climb', 'bic'),
         ('hill_climb', 'k2'),
         ('hill_climb', 'bdeu'),
+	('mmhc','bdeu'),
         ('pc', None)
     ]
     	
 
-    sample_sizes = [10000, 20000, 50000]
+    sample_sizes = [200]
     results = []
     trained_models = {}
 
@@ -109,15 +111,16 @@ def main():
             score = structure_score(model, df_filtered, scoring_method="bdeu")
             print("Calidad de red BDeue:", score)
             elapsed_time = time.time() - start_time
-            key = f"{algorithm}_{score_method if algorithm =='hill_climb' else 'BDeu'}_{sample_size}"
+            key = f"{algorithm}_{score_method if algorithm =='hill_climb' else 'bdeu'}_{sample_size}"
             trained_models[key] = model
             results.append({'Model': model,
                             'BDeu_Score': score,
-                            'Score_method': score_method,
+                            'Score_method': score_method if algorithm =='hill_climb' else 'bdeu',
                             'Algorithm': algorithm,
                             'Sample_Size': sample_size,
                             'Training_Time_Seconds': elapsed_time,
-                            'Number_of_Edges': len(model)
+                            'Number_of_Edges': len(model),
+			    'Number_of_df_variables':len(df.columns)
                             })
 
     results_df = pd.DataFrame(results)
@@ -136,7 +139,7 @@ def main():
     best_score = best_row['BDeu_Score']
     best_model = trained_models[best_model_key]
 
-    filename = f"./uploads/mejor_modelo_{best_model_key}_bic{best_score:.2f}.pkl"
+    filename = f"./uploads/mejor_modelo_{best_model_key}_bic{best_score:.2f}_edges{len(best_model.edges())}.pkl"
     # Guardar el modelo como archivo pickle
     with open(filename, 'wb') as f:
         pickle.dump(best_model, f)

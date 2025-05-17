@@ -1,13 +1,13 @@
-Model,BDeu_Score,Score_method,Algorithm,Sample_Size,Training_Time_Seconds,Number_of_Edges
-BayesianNetwork with 29 nodes and 43 edges,-5328801.715241186,bic,hill_climb,10000,2.878871440887451,29
-BayesianNetwork with 29 nodes and 56 edges,-5298188.546639991,k2,hill_climb,10000,3.3701345920562744,29
-BayesianNetwork with 29 nodes and 59 edges,-5305740.406017108,bdeu,hill_climb,10000,3.581296443939209,29
-BayesianNetwork with 27 nodes and 28 edges,-5107317.652295815,,pc,10000,354.1196081638336,27
-BayesianNetwork with 29 nodes and 52 edges,-5316825.365607223,bic,hill_climb,20000,3.718195915222168,29
-BayesianNetwork with 29 nodes and 66 edges,-5287620.229188652,k2,hill_climb,20000,4.0517120361328125,29
-BayesianNetwork with 29 nodes and 64 edges,-5293677.898885883,bdeu,hill_climb,20000,4.044833421707153,29
-BayesianNetwork with 27 nodes and 32 edges,-5066227.149902823,,pc,20000,1896.4550595283508,27
-BayesianNetwork with 29 nodes and 65 edges,-5293757.9941897085,bic,hill_climb,50000,5.365842580795288,29
-BayesianNetwork with 29 nodes and 79 edges,-5274932.758743723,k2,hill_climb,50000,5.752230644226074,29
-BayesianNetwork with 29 nodes and 76 edges,-5278124.0742860995,bdeu,hill_climb,50000,5.62312126159668,29
-BayesianNetwork with 27 nodes and 33 edges,-5310537.605509711,,pc,50000,8674.099339485168,27
+Model,BDeu_Score,Score_method,Algorithm,Sample_Size,Training_Time_Seconds,Number_of_Edges,Number_of_df_variables
+BayesianNetwork with 29 nodes and 41 edges,-5339935.574376682,bic,hill_climb,10000,2.6530990600585938,29,29
+BayesianNetwork with 29 nodes and 56 edges,-5298188.546639991,k2,hill_climb,10000,3.1972572803497314,29,29
+BayesianNetwork with 29 nodes and 58 edges,-5309224.670496309,bdeu,hill_climb,10000,3.43845272064209,29,29
+BayesianNetwork with 25 nodes and 26 edges,-4707934.943727735,bdeu,pc,10000,340.4198498725891,25,29
+BayesianNetwork with 29 nodes and 51 edges,-5315140.980164374,bic,hill_climb,20000,3.3773040771484375,29,29
+BayesianNetwork with 29 nodes and 66 edges,-5287620.229188652,k2,hill_climb,20000,4.132328987121582,29,29
+BayesianNetwork with 29 nodes and 64 edges,-5293677.898885882,bdeu,hill_climb,20000,3.8172354698181152,29,29
+BayesianNetwork with 26 nodes and 28 edges,-4828531.792033759,bdeu,pc,20000,1797.2123193740845,26,29
+BayesianNetwork with 29 nodes and 64 edges,-5292547.727067055,bic,hill_climb,50000,5.274305820465088,29,29
+BayesianNetwork with 29 nodes and 79 edges,-5274932.758743723,k2,hill_climb,50000,5.798710584640503,29,29
+BayesianNetwork with 29 nodes and 76 edges,-5278124.0742860995,bdeu,hill_climb,50000,5.465128421783447,29,29
+BayesianNetwork with 29 nodes and 35 edges,-5631003.761404333,bdeu,pc,50000,8358.783245325089,29,29
