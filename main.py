@@ -87,7 +87,7 @@ def main():
     ]
     	
 
-    sample_sizes = [1, 100, 1000, 2000]
+    sample_sizes = [10000, 20000, 50000]
     results = []
     trained_models = {}
 
@@ -104,7 +104,7 @@ def main():
             # Asegurarse de que las columnas del DataFrame coincidan con las variables del modelo
             model_variables = set(var for edge in model.edges() for var in edge)
             # Convertir el conjunto de variables del modelo a una lista antes de usarlo como indexador
-            df_filtered = sample_data[list(model_variables)]
+            df_filtered = df[list(model_variables)]
 
             score = structure_score(model, df_filtered, scoring_method="bdeu")
             print("Calidad de red BDeue:", score)
