@@ -1,13 +1,9 @@
 Model,BDeu_Score,Score_method,Algorithm,Sample_Size,Training_Time_Seconds,Number_of_Edges,Number_of_df_variables
-BayesianNetwork with 29 nodes and 41 edges,-5339935.574376682,bic,hill_climb,10000,2.6530990600585938,29,29
-BayesianNetwork with 29 nodes and 56 edges,-5298188.546639991,k2,hill_climb,10000,3.1972572803497314,29,29
-BayesianNetwork with 29 nodes and 58 edges,-5309224.670496309,bdeu,hill_climb,10000,3.43845272064209,29,29
-BayesianNetwork with 25 nodes and 26 edges,-4707934.943727735,bdeu,pc,10000,340.4198498725891,25,29
-BayesianNetwork with 29 nodes and 51 edges,-5315140.980164374,bic,hill_climb,20000,3.3773040771484375,29,29
-BayesianNetwork with 29 nodes and 66 edges,-5287620.229188652,k2,hill_climb,20000,4.132328987121582,29,29
-BayesianNetwork with 29 nodes and 64 edges,-5293677.898885882,bdeu,hill_climb,20000,3.8172354698181152,29,29
-BayesianNetwork with 26 nodes and 28 edges,-4828531.792033759,bdeu,pc,20000,1797.2123193740845,26,29
-BayesianNetwork with 29 nodes and 64 edges,-5292547.727067055,bic,hill_climb,50000,5.274305820465088,29,29
-BayesianNetwork with 29 nodes and 79 edges,-5274932.758743723,k2,hill_climb,50000,5.798710584640503,29,29
-BayesianNetwork with 29 nodes and 76 edges,-5278124.0742860995,bdeu,hill_climb,50000,5.465128421783447,29,29
-BayesianNetwork with 29 nodes and 35 edges,-5631003.761404333,bdeu,pc,50000,8358.783245325089,29,29
+BayesianNetwork with 22 nodes and 20 edges,-3442799.5640907367,bic,hill_climb,200,2.064643144607544,22,29
+BayesianNetwork with 28 nodes and 53 edges,-5243955.339092333,k2,hill_climb,200,2.961261749267578,28,29
+BayesianNetwork with 29 nodes and 58 edges,-5499331.130706075,bdeu,hill_climb,200,3.3483903408050537,29,29
+BayesianNetwork with 18 nodes and 11 edges,-3058363.079352288,bdeu,pc,200,0.7486288547515869,18,29
+BayesianNetwork with 29 nodes and 42 edges,-5336794.299982557,bic,hill_climb,10000,2.7278013229370117,29,29
+BayesianNetwork with 29 nodes and 59 edges,-5295684.975368724,k2,hill_climb,10000,3.44412899017334,29,29
+BayesianNetwork with 29 nodes and 58 edges,-5309311.967468532,bdeu,hill_climb,10000,3.6277313232421875,29,29
+BayesianNetwork with 25 nodes and 26 edges,-4725316.326348143,bdeu,pc,10000,352.02441120147705,25,29
