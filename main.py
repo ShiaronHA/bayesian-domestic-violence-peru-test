@@ -49,13 +49,16 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
 
     elif algorithm == 'mmhc':
         print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
-        mmhc = MmhcEstimator(df)
+        columns_to_exclude = ["NIVEL_EDUCATIVO_AGRESOR","NIVEL_EDUCATIVO_VICTIMA","EDAD_VICTIMA", "CONDICION", "ETNIA_VICTIMA"]
+	mmhc_df = df.drop(columns=[col for col in columns_to_exclude if col in df.columns]
+	mmhc = MmhcEstimator(mmhc_df)
         skeleton = mmhc.mmpc()
-        hc = HillClimbSearch(df)
+        print("\nAprendiendo con MMHC (hc)...")
+	hc = HillClimbSearch(mmhc_df)
         model = hc.estimate(
             tabu_length=5,
             white_list=skeleton.to_directed().edges(),
-            scoring_method=BDeuScore(df),
+            scoring_method=BDeuScore(mmhc_df),
             max_indegree=3,
 	    max_iter=100 #1000
         )
@@ -84,12 +87,12 @@ def main():
         ('hill_climb', 'bic'),
         ('hill_climb', 'k2'),
         ('hill_climb', 'bdeu'),
-	#('mmhc','bdeu'),
-        ('pc', None)
+	('mmhc','bdeu')
+        #('pc', None)
     ]
     	
 
-    sample_sizes = [200,10000]
+    sample_sizes = [200,1000]
     results = []
     trained_models = {}
 
