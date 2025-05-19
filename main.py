@@ -125,10 +125,9 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
         
         mmhc_df = df.copy()
-	for col in mmhc_df.columns:
-		if not pd.api.types.is_categorical_dtype(mmhc_df[col]):
-			mmhc_df[col] = mmhc_df[col].astype('category')
-
+    for col in mmhc_df.columns:
+        if not pd.api.types.is_categorical_dtype(mmhc_df[col]):
+            mmhc_df[col] = mmhc_df[col].astype('category')
         mmhc = MmhcEstimator(mmhc_df)
         skeleton = mmhc.mmpc()
         print("\nAprendiendo con MMHC (hc)...")
@@ -162,7 +161,7 @@ def main():
         ('hill_climb', 'bdeu'),
         ('pc', 'pillai'),
         ('GES', 'bic-cg'),
-	('mmhc', 'bdeu')
+	    ('mmhc', 'bdeu')
     ]
     sample_sizes = [200, 1000, 30000]
     results = []
