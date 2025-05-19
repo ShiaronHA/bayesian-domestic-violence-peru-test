@@ -5,12 +5,12 @@ import os
 import json
 import time
 from pgmpy.models import BayesianNetwork
-from pgmpy.estimators import HillClimbSearch, BicScore, BDeuScore, MmhcEstimator, PC
+from pgmpy.estimators import HillClimbSearch, MmhcEstimator, PC, GES
 from pgmpy.inference import BeliefPropagation
 from pgmpy.readwrite import BIFWriter
 from pgmpy.estimators import BayesianEstimator
 from pgmpy.metrics import structure_score
-from pgmpy.estimators import GES
+from pgmpy.estimators import K2, BDeu, BIC, AIC
 
 # --- Preprocesamiento de datos ---
 def preprocess_data(filepath):
@@ -102,11 +102,11 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         print(f"\nAprendiendo con Hill Climbing usando {scoring_method}...")
         est = HillClimbSearch(df)
         if scoring_method == 'bic':
-            model = est.estimate(scoring_method=BicScore(df), max_iter=5000, max_indegree=5)
+            model = est.estimate(scoring_method=BIC(df), max_iter=5000, max_indegree=5)
         elif scoring_method == 'bdeu':
-            model = est.estimate(scoring_method=BDeuScore(df), max_indegree=5, max_iter=int(1e4))
+            model = est.estimate(scoring_method=BDeu(df), max_indegree=5, max_iter=int(1e4))
         elif scoring_method == 'k2':
-            model = est.estimate(scoring_method='k2score', max_indegree=5, max_iter=int(1e4))
+            model = est.estimate(scoring_method=K2(df), max_indegree=5, max_iter=int(1e4))
         else:
             raise ValueError("Scoring method no soportado para Hill Climbing.")
         bn_model = BayesianNetwork(model.edges())
@@ -123,8 +123,12 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         bn_model = BayesianNetwork(model.edges())
     elif algorithm == 'mmhc':
         print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
-        columns_to_exclude = ["NIVEL_EDUCATIVO_AGRESOR", "NIVEL_EDUCATIVO_VICTIMA", "EDAD_VICTIMA", "CONDICION", "ETNIA_VICTIMA"]
-        mmhc_df = df.drop(columns=[col for col in columns_to_exclude if col in df.columns])
+        
+        mmhc_df = df.copy()
+	for col in mmhc_df.columns:
+		if not pd.api.types.is_categorical_dtype(mmhc_df[col]):
+			mmhc_df[col] = mmhc_df[col].astype('category')
+
         mmhc = MmhcEstimator(mmhc_df)
         skeleton = mmhc.mmpc()
         print("\nAprendiendo con MMHC (hc)...")
@@ -132,7 +136,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         model = hc.estimate(
             tabu_length=5,
             white_list=skeleton.to_directed().edges(),
-            scoring_method=BDeuScore(mmhc_df),
+            scoring_method=BDeu(mmhc_df),
             max_indegree=3,
             max_iter=100
         )
@@ -157,7 +161,8 @@ def main():
         ('hill_climb', 'bic'),
         ('hill_climb', 'bdeu'),
         ('pc', 'pillai'),
-        ('GES', 'bic-cg')
+        ('GES', 'bic-cg'),
+	('mmhc', 'bdeu')
     ]
     sample_sizes = [200, 1000, 30000]
     results = []
