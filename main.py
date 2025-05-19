@@ -4,7 +4,7 @@ import pickle
 import os
 import json
 import time
-from pgmpy.models import BayesianNetwork
+from pgmpy.models import DiscreteBayesianNetwork
 from pgmpy.estimators import HillClimbSearch, MmhcEstimator, PC, GES
 from pgmpy.inference import BeliefPropagation
 from pgmpy.readwrite import BIFWriter
@@ -109,18 +109,18 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
             model = est.estimate(scoring_method=K2(df), max_indegree=5, max_iter=int(1e4))
         else:
             raise ValueError("Scoring method no soportado para Hill Climbing.")
-        bn_model = BayesianNetwork(model.edges())
+        bn_model = DiscreteBayesianNetwork(model.edges())
     elif algorithm == 'GES':
         print(f"\nAprendiendo con GES...")
         est = GES(df)
         model = est.estimate(scoring_method='bic-cg')
-        bn_model = BayesianNetwork(model.edges())
+        bn_model = DiscreteBayesianNetwork(model.edges())
     elif algorithm == 'pc':
         print(f"\nAprendiendo con PC...")
         est = PC(df)
         model = est.estimate(ci_test='pillai')
         #model = est.estimate(ci_test='chi_square', variant="stable", max_cond_vars=4, return_type='dag')
-        bn_model = BayesianNetwork(model.edges())
+        bn_model = DiscreteBayesianNetwork(model.edges())
     elif algorithm == 'mmhc':
         print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
         
@@ -128,9 +128,11 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
     for col in mmhc_df.columns:
         if not pd.api.types.is_categorical_dtype(mmhc_df[col]):
             mmhc_df[col] = mmhc_df[col].astype('category')
+        mmhc_df.info()
         mmhc = MmhcEstimator(mmhc_df)
+        print("\nAprendiendo con MMHC (1.skeleton)...")
         skeleton = mmhc.mmpc()
-        print("\nAprendiendo con MMHC (hc)...")
+        print("\nAprendiendo con MMHC (2.hc)...")
         hc = HillClimbSearch(mmhc_df)
         model = hc.estimate(
             tabu_length=5,
@@ -139,7 +141,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
             max_indegree=3,
             max_iter=100
         )
-        bn_model = BayesianNetwork(model.edges())
+        bn_model = DiscreteBayesianNetwork(model.edges())
     else:
         raise ValueError("Algoritmo no soportado.")
     print("Estructura aprendida:", bn_model.edges())
