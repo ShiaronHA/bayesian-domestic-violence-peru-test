@@ -7,13 +7,13 @@
         "4": "REINGRESO"
     },
     "EDAD_VICTIMA": {
-        "0": "ADOLESCENCIA",
-        "1": "ADULTO",
-        "2": "ADULTO JOVEN",
-        "3": "ADULTO MAYOR",
-        "4": "INFANCIA",
-        "5": "JOVEN",
-        "6": "PRIMERA INFANCIA"
+        "0": "PRIMERA INFANCIA",
+        "1": "INFANCIA",
+        "2": "ADOLESCENCIA",
+        "3": "JOVEN",
+        "4": "ADULTO JOVEN",
+        "5": "ADULTO",
+        "6": "ADULTO MAYOR"
     },
     "LENGUA_MATERNA_VICTIMA": {
         "0": "AIMARA",
@@ -39,14 +39,14 @@
         "3": "VIUDO/A"
     },
     "NIVEL_EDUCATIVO_VICTIMA": {
-        "0": "MAESTRIA / DOCTORADO",
-        "1": "PRIMARIA COMPLETA",
-        "2": "PRIMARIA INCOMPLETA",
-        "3": "SECUNDARIA COMPLETA",
-        "4": "SECUNDARIA INCOMPLETA",
-        "5": "SIN NIVEL/INICIAL/BASICA ESPECIAL",
+        "0": "SIN NIVEL/INICIAL/BASICA ESPECIAL",
+        "1": "PRIMARIA INCOMPLETA",
+        "2": "PRIMARIA COMPLETA",
+        "3": "SECUNDARIA INCOMPLETA",
+        "4": "SECUNDARIA COMPLETA",
+        "5": "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO",
         "6": "SUPERIOR TECNICO/UNIVERSITARIO COMPLETO",
-        "7": "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO"
+        "7": "MAESTRIA / DOCTORADO"
     },
     "TRABAJA_VICTIMA": {
         "0": "NO",
@@ -64,31 +64,31 @@
     },
     "EDAD_AGRESOR": {
         "0": "ADOLESCENCIA",
-        "1": "ADULTO",
+        "1": "JOVEN",
         "2": "ADULTO JOVEN",
-        "3": "ADULTO MAYOR",
-        "4": "JOVEN"
+        "3": "ADULTO",
+        "4": "ADULTO MAYOR"
     },
     "SEXO_AGRESOR": {
         "0": "HOMBRE",
         "1": "MUJER"
     },
     "NIVEL_EDUCATIVO_AGRESOR": {
-        "0": "MAESTRIA / DOCTORADO",
-        "1": "PRIMARIA COMPLETA",
-        "2": "PRIMARIA INCOMPLETA",
-        "3": "SECUNDARIA COMPLETA",
-        "4": "SECUNDARIA INCOMPLETA",
-        "5": "SIN NIVEL/INICIAL/BASICA ESPECIAL",
+        "0": "SIN NIVEL/INICIAL/BASICA ESPECIAL",
+        "1": "PRIMARIA INCOMPLETA",
+        "2": "PRIMARIA COMPLETA",
+        "3": "SECUNDARIA INCOMPLETA",
+        "4": "SECUNDARIA COMPLETA",
+        "5": "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO",
         "6": "SUPERIOR TECNICO/UNIVERSITARIO COMPLETO",
-        "7": "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO"
+        "7": "MAESTRIA / DOCTORADO"
     },
     "FRECUENCIA_AGREDE": {
-        "0": "DIARIO",
-        "1": "INTERMITENTE",
-        "2": "MENSUAL",
-        "3": "QUINCENAL",
-        "4": "SEMANAL"
+        "0": "MENSUAL",
+        "1": "QUINCENAL",
+        "2": "SEMANAL",
+        "3": "INTERMITENTE",
+        "4": "DIARIO"
     },
     "NIVEL_DE_RIESGO_VICTIMA": {
         "0": "LEVE",
