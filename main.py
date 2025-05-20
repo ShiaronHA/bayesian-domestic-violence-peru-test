@@ -58,8 +58,6 @@ def preprocess_data(filepath):
     df.EDAD_AGRESOR = pd.Categorical(
         df.EDAD_AGRESOR,
         categories=[
-            'PRIMERA INFANCIA',
-            'INFANCIA',
             'ADOLESCENCIA',
             'JOVEN',
             'ADULTO JOVEN',
