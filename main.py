@@ -209,7 +209,7 @@ def main():
     #     ('mmhc', 'bdeu')
     # ]
     algorithms_to_experiment = [
-        ('hill_climb', 'bic-d'), #por adecuar para bic-d
+        ('hill_climb', 'bic-d'), 
         ('hill_climb', 'bdeu'),
         ('pc', 'pillai'),
         #('pc', 'chi_square'),
@@ -231,12 +231,14 @@ def main():
             if algorithm == 'hill_climb' or algorithm == 'pc':
                 df_to_sl=sample_data_encoded
             else:
-                df_to_sl=sample_data    
+                df_to_sl=sample_data
+                
+            # Validación: si es PC y sample_size == 50000, saltar este experimento    
             if algorithm == 'pc' and sample_size == 50000:
-		print (f"[AVISO] se omite PC con sample_size=50000")
-		continue
+                print (f"[AVISO] se omite PC con sample_size=50000")
+                continue
 	    
-	    print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
+            print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
             start_time = time.time()
             model = learn_structure(df_to_sl, algorithm=algorithm, scoring_method=score_method,
                 output_path=f'./models/model_structure_29_{algorithm}_{score_method if algorithm == "hill_climb" else "BDeu"}_{sample_size}.pkl')
