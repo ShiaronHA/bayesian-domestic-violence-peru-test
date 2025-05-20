@@ -3,7 +3,7 @@ import pickle
 import os
 import json
 import time
-from pgmpy.models import DiscreteBayesianNetwork
+from pgmpy.models import BayesianNetwork, DiscreteBayesianNetwork
 from pgmpy.estimators import HillClimbSearch, MmhcEstimator, PC, GES
 from pgmpy.inference import BeliefPropagation
 from pgmpy.readwrite import BIFWriter
@@ -203,8 +203,8 @@ def main():
         ('hill_climb', 'bdeu'),
         ('pc', 'pillai'),
         #('pc', 'chi_square'),
-        ('GES', 'bic-cg')
-	#('mmhc', 'bdeu')
+        #('GES', 'bic-cg')
+	('mmhc', 'bdeu')
     ]
     sample_sizes = [20000, 30000]
     results = []
