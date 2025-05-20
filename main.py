@@ -229,12 +229,12 @@ def main():
         
         for algorithm, score_method in algorithms_to_experiment:
             if algorithm == 'hill_climb' or algorithm == 'pc':
-                df=sample_data_encoded
+                df_to_sl=sample_data_encoded
             else:
-                df=sample_data    
+                df_to_sl=sample_data    
             print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
             start_time = time.time()
-            model = learn_structure(df, algorithm=algorithm, scoring_method=score_method,
+            model = learn_structure(df_to_sl, algorithm=algorithm, scoring_method=score_method,
                 output_path=f'./models/model_structure_29_{algorithm}_{score_method if algorithm == "hill_climb" else "BDeu"}_{sample_size}.pkl')
             model_variables = set(var for edge in model.edges() for var in edge)
             df_filtered = df_encoded[list(model_variables)] #Por revisar que df elegir codificado o no
@@ -250,7 +250,7 @@ def main():
                             'Sample_Size': sample_size,
                             'Training_Time_Seconds': elapsed_time,
                             'Number_of_Edges': len(model),
-                            'Number_of_df_variables': len(df.columns)
+                            'Number_of_df_variables': len(df_to_sl.columns)
                             })
     results_structure_learning = pd.DataFrame(results)
     results_structure_learning = results_structure_learning.sort_values(by='BDeu_Score', ascending=False).reset_index(drop=True)
