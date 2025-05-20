@@ -98,6 +98,11 @@ def preprocess_data(filepath):
     }
     return df_encoded, df, category_mappings
 
+def validate_numeric_encoding(df):
+    non_numeric = [col for col in df.columns if not pd.api.types.is_numeric_dtype(df[col])]
+    if non_numeric:
+	raise ValueError(f"Las siguientes columnas no están codificadas como numéricas: {non_numeric}")
+
 # --- Aprendizaje de estructura ---
 def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path=None):
     df.info()
@@ -123,6 +128,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         print(f"\nAprendiendo con PC...")
         est = PC(df)
         if scoring_method == 'pillai':
+	    validate_numeric_encoding(df)
             model = est.estimate(ci_test='pillai') 
         elif scoring_method == 'chi_square':
             model = est.estimate(ci_test='chi_square', variant="stable", max_cond_vars=4, return_type='dag')
@@ -204,13 +210,13 @@ def main():
         sample_data = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
         
         for algorithm, score_method in algorithms_to_experiment:
-            if algorithm == 'hill_climb':
+            if algorithm == 'hill_climb' or algorithm == 'pc':
                 df=sample_data_encoded
             else:
                 df=sample_data    
             print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
             start_time = time.time()
-            model = learn_structure(df=sample_data, algorithm=algorithm, scoring_method=score_method,
+            model = learn_structure(df, algorithm=algorithm, scoring_method=score_method,
                 output_path=f'./models/model_structure_29_{algorithm}_{score_method if algorithm == "hill_climb" else "BDeu"}_{sample_size}.pkl')
             model_variables = set(var for edge in model.edges() for var in edge)
             df_filtered = df_encoded[list(model_variables)] #Por revisar que df elegir codificado o no
