@@ -1,4 +1,4 @@
-# Modularización y orden del código
+
 import pandas as pd
 import pickle
 import os
@@ -117,7 +117,11 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         bn_model = DiscreteBayesianNetwork(model.edges())
     elif algorithm == 'pc':
         print(f"\nAprendiendo con PC...")
-        est = PC(df)
+        for col in df.columns:
+          if not pd.api.types.is_categorical_dtype(mmhc_df[col]):
+                df[col] = df[col].astype('category')
+
+	est = PC(df)
         model = est.estimate(ci_test='pillai')
         #model = est.estimate(ci_test='chi_square', variant="stable", max_cond_vars=4, return_type='dag')
         bn_model = DiscreteBayesianNetwork(model.edges())
@@ -162,10 +166,10 @@ def main():
         ('hill_climb', 'bic'),
         ('hill_climb', 'bdeu'),
         ('pc', 'pillai'),
-        ('GES', 'bic-cg'),
-	    ('mmhc', 'bdeu')
+        ('GES', 'bic-cg')
+	#('mmhc', 'bdeu')
     ]
-    sample_sizes = [200, 1000, 30000]
+    sample_sizes = [20000, 30000]
     results = []
     trained_models = {}
     for sample_size in sample_sizes:
