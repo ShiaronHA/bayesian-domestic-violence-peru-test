@@ -132,7 +132,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         if scoring_method == 'pillai':
             df = validate_numeric_encoding(df)
             est = PC(df)
-            model = est.estimate(ci_test='pillai') 
+            model = est.estimate(ci_test='pillai', max_cond_vars=2) 
         elif scoring_method == 'chi_square':
             est = PC(df)
             model = est.estimate(ci_test='chi_square', variant="stable", max_cond_vars=4, return_type='dag')
@@ -209,7 +209,7 @@ def main():
     #     ('mmhc', 'bdeu')
     # ]
     algorithms_to_experiment = [
-        ('hill_climb', 'bic'), #por adecuar para bic-d
+        ('hill_climb', 'bic-d'), #por adecuar para bic-d
         ('hill_climb', 'bdeu'),
         ('pc', 'pillai'),
         #('pc', 'chi_square'),
@@ -217,7 +217,7 @@ def main():
         ('GES', 'bic-cg')
 	    #('mmhc', 'bdeu')
     ]
-    sample_sizes = [20000, 30000]
+    sample_sizes = [20000, 30000, 50000]
     results = []
     trained_models = {}
     for sample_size in sample_sizes:
@@ -232,7 +232,11 @@ def main():
                 df_to_sl=sample_data_encoded
             else:
                 df_to_sl=sample_data    
-            print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
+            if algorithm == 'pc' and sample_size == 50000:
+		print (f"[AVISO] se omite PC con sample_size=50000")
+		continue
+	    
+	    print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
             start_time = time.time()
             model = learn_structure(df_to_sl, algorithm=algorithm, scoring_method=score_method,
                 output_path=f'./models/model_structure_29_{algorithm}_{score_method if algorithm == "hill_climb" else "BDeu"}_{sample_size}.pkl')
