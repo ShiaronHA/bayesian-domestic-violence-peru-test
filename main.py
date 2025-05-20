@@ -186,6 +186,16 @@ def bayesian_inference(model, evidence):
     print(f"Resultado de la inferencia guardado en: {result_file_path}")
     
 # --- Main para experimentos completos ---
+def ensure_all_categories_present(df, sample):
+    # Para cada columna categórica, asegura que todas las categorías estén presentes en la muestra
+    for col in df.select_dtypes(include=['category']).columns:
+        categorias_faltantes = set(df[col].cat.categories) - set(sample[col].unique())
+        if categorias_faltantes:
+            for cat in categorias_faltantes:
+                fila = df[df[col] == cat].sample(n=1, random_state=42)
+                sample = pd.concat([sample, fila], ignore_index=True)
+    return sample
+
 def main():
     
     filepath = 'data/df_processed.csv'
@@ -204,7 +214,7 @@ def main():
         ('pc', 'pillai'),
         #('pc', 'chi_square'),
         #('GES', 'bic-cg')
-	('mmhc', 'bdeu')
+	    ('mmhc', 'bdeu')
     ]
     sample_sizes = [20000, 30000]
     results = []
@@ -212,6 +222,9 @@ def main():
     for sample_size in sample_sizes:
         sample_data_encoded = df_encoded.sample(n=sample_size, random_state=42).reset_index(drop=True)
         sample_data = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
+        # Asegura que todas las categorías estén presentes en la muestra
+        sample_data = ensure_all_categories_present(df, sample_data)
+        sample_data_encoded = ensure_all_categories_present(df_encoded, sample_data_encoded)
         
         for algorithm, score_method in algorithms_to_experiment:
             if algorithm == 'hill_climb' or algorithm == 'pc':
