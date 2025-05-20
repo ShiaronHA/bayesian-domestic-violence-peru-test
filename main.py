@@ -117,8 +117,9 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
             model = est.estimate(scoring_method=BDeu(df), max_indegree=5, max_iter=int(1e4))
         elif scoring_method == 'k2':
             model = est.estimate(scoring_method=K2(df), max_indegree=5, max_iter=int(1e4))
-        
-	else:
+        elif scoring_method == 'bic-d':
+            model = est.estimate(scoring_method=scoring_method, max_indegree=5, max_iter=int(1e4))
+        else:
             raise ValueError("Scoring method no soportado para Hill Climbing.")
         bn_model = DiscreteBayesianNetwork(model.edges())
     elif algorithm == 'GES': #Causal Discovery
@@ -212,7 +213,7 @@ def main():
         ('hill_climb', 'bdeu'),
         #('pc', 'pillai'),
         #('pc', 'chi_square'),
-	('GES','bic-d'),
+	    ('GES','bic-d'),
         ('GES', 'bic-cg')
 	    #('mmhc', 'bdeu')
     ]
