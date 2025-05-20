@@ -211,7 +211,7 @@ def main():
     algorithms_to_experiment = [
         ('hill_climb', 'bic'), #por adecuar para bic-d
         ('hill_climb', 'bdeu'),
-        #('pc', 'pillai'),
+        ('pc', 'pillai'),
         #('pc', 'chi_square'),
 	    ('GES','bic-d'),
         ('GES', 'bic-cg')
@@ -245,7 +245,7 @@ def main():
             trained_models[key] = model
             results.append({'Model': model,
                             'BDeu_Score': score,
-                            'Score_method': score_method if algorithm == 'hill_climb' else 'bdeu',
+                            'Score_method': score_method,
                             'Algorithm': algorithm,
                             'Sample_Size': sample_size,
                             'Training_Time_Seconds': elapsed_time,
