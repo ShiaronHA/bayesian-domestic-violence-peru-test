@@ -262,8 +262,14 @@ def main():
             enforce_expert_knowledge = False
             if algorithm == 'pc':
                 expert_knowledge = ExpertKnowledge(
-                    required_edges=[('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')],
-                    forbidden_edges=[('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')]
+                    required_edges=[
+                        ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA'),
+                        ('VIOLENCIA_PSICOLOGICA', 'VIOLENCIA_SEXUAL')
+                    ],
+                    forbidden_edges=[
+                        ('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA'),
+                        ('VIOLENCIA_SEXUAL', 'VIOLENCIA_PSICOLOGICA')
+                    ]
                 )
                 enforce_expert_knowledge = True
             print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
