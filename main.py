@@ -281,7 +281,7 @@ def main():
             score = structure_score(model, df_filtered, scoring_method="bdeu")
             print("Calidad de red BDeue:", score)
             elapsed_time = time.time() - start_time
-            key = f"{algorithm}_{score_method if algorithm == 'hill_climb' else 'bdeu'}_{sample_size}"
+            key = f"{algorithm}_{score_method}_{sample_size}"
             trained_models[key] = model
             results.append({'Model': model,
                             'BDeu_Score': score,
