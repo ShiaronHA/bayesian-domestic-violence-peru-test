@@ -101,7 +101,10 @@ def preprocess_data(filepath):
 def validate_numeric_encoding(df):
     non_numeric = [col for col in df.columns if not pd.api.types.is_numeric_dtype(df[col])]
     if non_numeric:
-	raise ValueError(f"Las siguientes columnas no están codificadas como numéricas: {non_numeric}")
+        print(f"Convirtiendo columnas no numéricas a códigos: {non_numeric}")
+        for col in non_numeric:
+            df[col] = pd.Categorical(df[col]).codes
+    return df
 
 # --- Aprendizaje de estructura ---
 def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path=None):
@@ -126,11 +129,12 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         bn_model = DiscreteBayesianNetwork(model.edges())
     elif algorithm == 'pc':
         print(f"\nAprendiendo con PC...")
-        est = PC(df)
         if scoring_method == 'pillai':
-	    validate_numeric_encoding(df)
+            df = validate_numeric_encoding(df)
+            est = PC(df)
             model = est.estimate(ci_test='pillai') 
         elif scoring_method == 'chi_square':
+            est = PC(df)
             model = est.estimate(ci_test='chi_square', variant="stable", max_cond_vars=4, return_type='dag')
         bn_model = DiscreteBayesianNetwork(model.edges())
         
