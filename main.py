@@ -105,7 +105,7 @@ def validate_numeric_encoding(df):
     return df
 
 # --- Aprendizaje de estructura ---
-def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path=None):
+def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path=None, expert_knowledge=None, enforce_expert_knowledge=False):
     df.info()
     print("Forma de muestra del DataFrame:", df.shape)
     if algorithm == 'hill_climb':
@@ -132,12 +132,27 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         if scoring_method == 'pillai':
             df = validate_numeric_encoding(df)
             est = PC(df)
-            model = est.estimate(ci_test='pillai', max_cond_vars=2) 
+            # --- Expert knowledge for PC ---
+            model = est.estimate(
+                ci_test='pillai',
+                max_cond_vars=3,
+                expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
+                enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
+            )
         elif scoring_method == 'chi_square':
             est = PC(df)
-            model = est.estimate(ci_test='chi_square', variant="stable", max_cond_vars=4, return_type='dag')
+            model = est.estimate(
+                variant='parallel',
+                ci_test='chi_square',
+                return_type='pdag',
+                significance_level=0.01,
+                max_cond_vars=5,
+                expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
+                enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False,
+                n_jobs=-1,
+                show_progress=True
+            )
         bn_model = DiscreteBayesianNetwork(model.edges())
-        
     elif algorithm == 'mmhc':
         print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
         mmhc = MmhcEstimator(df)
@@ -220,6 +235,10 @@ def main():
     sample_sizes = [20000, 30000, 50000]
     results = []
     trained_models = {}
+    expert_knowledge = {
+        'forbidden_edges': [],
+        'required_edges': [('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')]
+    }
     for sample_size in sample_sizes:
         sample_data_encoded = df_encoded.sample(n=sample_size, random_state=42).reset_index(drop=True)
         sample_data = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
@@ -237,11 +256,25 @@ def main():
             if algorithm == 'pc' and sample_size == 50000:
                 print (f"[AVISO] se omite PC con sample_size=50000")
                 continue
-	    
+            # --- Expert knowledge: LENGUA_MATERNA_VICTIMA->ETNIA_VICTIMA permitido, ETNIA_VICTIMA->LENGUA_MATERNA_VICTIMA prohibido ---
+            expert_knowledge = None
+            enforce_expert_knowledge = False
+            if algorithm == 'pc':
+                expert_knowledge = {
+                    'forbidden_edges': [('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')],
+                    'required_edges': [('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')]
+                }
+                enforce_expert_knowledge = True
             print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
             start_time = time.time()
-            model = learn_structure(df_to_sl, algorithm=algorithm, scoring_method=score_method,
-                output_path=f'./models/model_structure_29_{algorithm}_{score_method if algorithm == "hill_climb" else "BDeu"}_{sample_size}.pkl')
+            model = learn_structure(
+                df_to_sl,
+                algorithm=algorithm,
+                scoring_method=score_method,
+                output_path=f'./models/model_structure_29_{algorithm}_{score_method if algorithm == "hill_climb" else "BDeu"}_{sample_size}.pkl',
+                expert_knowledge=expert_knowledge,
+                enforce_expert_knowledge=enforce_expert_knowledge
+            )
             model_variables = set(var for edge in model.edges() for var in edge)
             df_filtered = df_encoded[list(model_variables)] #Por revisar que df elegir codificado o no
             score = structure_score(model, df_filtered, scoring_method="bdeu")
