@@ -13,6 +13,7 @@ from pgmpy.estimators import K2, BDeu, BIC, AIC
 import matplotlib.pyplot as plt
 from networkx.drawing.nx_pydot import to_pydot
 import networkx as nx
+from pgmpy.constraints import ExpertKnowledge
 
 # --- Preprocesamiento de datos ---
 def preprocess_data(filepath):
@@ -260,10 +261,10 @@ def main():
             expert_knowledge = None
             enforce_expert_knowledge = False
             if algorithm == 'pc':
-                expert_knowledge = {
-                    'forbidden_edges': [('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')],
-                    'required_edges': [('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')]
-                }
+                expert_knowledge = ExpertKnowledge(
+                    required_edges=[('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')],
+                    forbidden_edges=[('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')]
+                )
                 enforce_expert_knowledge = True
             print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
             start_time = time.time()
