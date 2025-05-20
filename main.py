@@ -13,7 +13,7 @@ from pgmpy.estimators import K2, BDeu, BIC, AIC
 import matplotlib.pyplot as plt
 from networkx.drawing.nx_pydot import to_pydot
 import networkx as nx
-from pgmpy.constraints import ExpertKnowledge
+from pgmpy.estimators import ExpertKnowledge
 
 # --- Preprocesamiento de datos ---
 def preprocess_data(filepath):
