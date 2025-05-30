@@ -136,7 +136,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
             # --- Expert knowledge for PC ---
             model = est.estimate(
                 ci_test='pillai',
-                max_cond_vars=3,
+                max_cond_vars=5,
                 expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
                 enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
             )
@@ -233,7 +233,7 @@ def main():
         ('GES', 'bic-cg')
 	    #('mmhc', 'bdeu')
     ]
-    sample_sizes = [20000, 30000, 50000]
+    sample_sizes = [40000, 50000, 70000]
     results = []
     trained_models = {}
     expert_knowledge = {
@@ -254,8 +254,8 @@ def main():
                 df_to_sl=sample_data
                 
             # Validación: si es PC y sample_size == 50000, saltar este experimento    
-            if algorithm == 'pc' and sample_size == 50000:
-                print (f"[AVISO] se omite PC con sample_size=50000")
+            if algorithm == 'pc' and sample_size == 70000:
+                print (f"[AVISO] se omite PC con sample_size=70000")
                 continue
             # --- Expert knowledge: LENGUA_MATERNA_VICTIMA->ETNIA_VICTIMA permitido, ETNIA_VICTIMA->LENGUA_MATERNA_VICTIMA prohibido ---
             expert_knowledge = None
@@ -263,8 +263,7 @@ def main():
             if algorithm == 'pc':
                 expert_knowledge = ExpertKnowledge(
                     required_edges=[
-                        ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA'),
-                        ('VIOLENCIA_PSICOLOGICA', 'VIOLENCIA_SEXUAL')
+                        ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')
                     ],
                     forbidden_edges=[
                         ('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA'),
