@@ -9,3 +9,21 @@ wheels/
 # Virtual environments
 .venv
 venv/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE/editor-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore data files in input_data (downloaded manually)
+data/input_data/
+
+# If you have other large output files or sensitive files, add them here
+# e.g., large model files if not using LFS
+# models/*.pkl 
+# uploads/*
