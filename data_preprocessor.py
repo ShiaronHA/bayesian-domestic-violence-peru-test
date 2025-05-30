@@ -4,11 +4,13 @@ import matplotlib.pyplot as plt
 import os
 import pyreadstat
 import unicodedata
+import seaborn as sns
 
 # Define the input and output paths based on the project structure
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DATA_DIR = os.path.join(BASE_DIR, 'data', 'input_data')
 OUTPUT_DATA_DIR = os.path.join(BASE_DIR, 'data')
+PLOTS_DIR = os.path.join(BASE_DIR, 'plots') # Define a directory for plots
 
 # List of data files to process
 DATA_FILES_INFO = [
@@ -94,14 +96,57 @@ def load_and_process_data(input_dir, files_info):
 
     return combined_df
 
+def plot_categorical_unique_counts(df, top_n=50, save_path=None):
+    """Generates and displays a bar plot of the top N categorical columns by unique value counts,
+       and optionally saves it to a file."""
+    # Obtiene las columnas categóricas y la cantidad de valores únicos para cada una
+    categorical_columns = df.select_dtypes(include=['category']).columns
+    if categorical_columns.empty:
+        print("No categorical columns found to plot.")
+        return
+
+    unique_value_counts = {col: df[col].nunique() for col in categorical_columns}
+
+    # Ordenar unique_value_counts por valores (cantidad de valores únicos) en orden descendente
+    # Convert to list of items for slicing, then take top_n
+    sorted_items = sorted(unique_value_counts.items(), key=lambda item: item[1], reverse=True)
+    
+    # Select top_n items
+    top_n_items = sorted_items[:top_n]
+    
+    if not top_n_items:
+        print(f"No data to plot after selecting top {top_n}.")
+        return
+
+    top_n_unique_value_counts = dict(top_n_items)
+
+    # Crear el gráfico de barras usando los datos ordenados
+    plt.figure(figsize=(15, 8))
+    sns.barplot(x=list(top_n_unique_value_counts.keys()), y=list(top_n_unique_value_counts.values()))
+    plt.xticks(rotation=90)
+    plt.xlabel(f"Top {top_n} Categorical Columns (by unique values)")
+    plt.ylabel("Cantidad de valores únicos")
+    plt.title(f"Top {top_n} Cantidad de valores únicos por columna categórica")
+    plt.tight_layout()
+
+    if save_path:
+        try:
+            plt.savefig(save_path, bbox_inches='tight')
+            print(f"Plot saved to {save_path}")
+        except Exception as e:
+            print(f"Error saving plot to {save_path}: {e}")
+    
+    #plt.show() 
+
 def main():
     """Main function to run the data preprocessing pipeline."""
     print("Starting data preprocessing...")
     
-    # Create output directory if it doesn't exist
-    if not os.path.exists(OUTPUT_DATA_DIR):
-        os.makedirs(OUTPUT_DATA_DIR)
-        print(f"Created directory: {OUTPUT_DATA_DIR}")
+    # Create output and plots directories if they don't exist
+    for dir_path in [OUTPUT_DATA_DIR, PLOTS_DIR]:
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+            print(f"Created directory: {dir_path}")
 
     combined_df = load_and_process_data(INPUT_DATA_DIR, DATA_FILES_INFO)
 
@@ -120,7 +165,22 @@ def main():
         
         # --- End of placeholder ---
         print("Forma inicial del DataFrame:", combined_df.shape)
-
+        
+        #Print types of columns
+        print("Tipos de columnas:")
+        print(combined_df.dtypes)
+        
+        columns_to_convert = ['INFORMANTE', 'FORMA_INGRESO', 'LENGUA_MATERNA_VICTIMA','ETNIA_VICTIMA','NIVEL_EDUCATIVO_VICTIMA','OCUPACION_VICTIMA','AGRESOR_EXTRANJERO','VINCULO_PAREJA', 'VINCULO_FAMILIAR','SIN_VINCULO', 'NIVEL_EDUCATIVO_AGRESOR','OCUPACION_AGRESOR','FACTOR_VICTIMA_DISCAPACIDAD','NIVEL_DE_RIESGO_VICTIMA','LUGAR_TENTATIVA_DE_FEMINICIDIO','SITUACION_AGRESOR','TIPO_VIOLENCIA','MODALIDAD_TENTATIVA_DE_FEMINICIDIO','MOVIL_TENTATIVA_DE_FEMINICIDIO','MOVIL_TENTATIVA_DE_FEMINICIDIO','MODALIDADES_VCM','FACTOR_VICTIMA_ABUSO_CONSUMO_ALCOHOL','FACTOR_VICTIMA_CONSUME_DROGAS']
+        for c in columns_to_convert:
+            if c in combined_df.columns: # Check if column exists before trying to convert
+                combined_df[c] = combined_df[c].astype('category')
+            else:
+                print(f"Warning: Column '{c}' not found in DataFrame, skipping conversion.")
+        
+        #Grafico
+        plot_save_path = os.path.join(PLOTS_DIR, 'categorical_unique_counts_initial.png') # Updated path
+        plot_categorical_unique_counts(combined_df, top_n=50, save_path=plot_save_path)
+        
         output_file_path = os.path.join(OUTPUT_DATA_DIR, 'df_processed.csv')
         try:
             combined_df.to_csv(output_file_path, index=False)
