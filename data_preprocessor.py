@@ -358,8 +358,9 @@ def calculate_and_classify_violence_level(df, input_data_dir):
         elif ratio < 0.02: return 'Medio'
         else: return 'Alto'
         
-    df_merge['nivel_violencia'] = df_merge['ratio_violencia'].apply(clasificar_violencia)
-
+    df_merge['NIVEL_VIOLENCIA'] = df_merge['ratio_violencia'].apply(clasificar_violencia)
+    df_merge['NIVEL_VIOLENCIA'] = df_merge['NIVEL_VIOLENCIA'].astype('category')
+    
     df_copy = pd.merge(df_copy, df_merge[['UBIGEO', 'nivel_violencia']], on='UBIGEO', how='left')
     df_copy = df_copy.drop(columns=geo_cols + ['UBIGEO'], errors='ignore')
     return df_copy
@@ -578,15 +579,17 @@ def feature_selection(df):
     """Selects relevant features for analysis, dropping unnecessary columns."""
     print("Starting feature selection...")
     
-    cols_to_exclude = ['FECHA_INGRESO', 'DPTO_DOMICILIO', 'PROV_DOMICILIO', 'DIST_DOMICILIO', 'FORMA_INGRESO','CENTRO_POBLADO_DOMICILIO','CEM','TIPO_VIOLENCIA',
+    cols_to_exclude = ['FECHA_INGRESO', 'FORMA_INGRESO','CENTRO_POBLADO_DOMICILIO','CEM','TIPO_VIOLENCIA',
                    'INFORMANTE','DESEA_PATROCINIO_LEGAL','CUENTA_MEDIDAS_PROTECCION','FACTOR_AGRESOR_CONSUMO_ALCOHOL','FACTOR_AGRESOR_CONSUME_DROGA']
 
-    df = df.drop(columns=cols_to_exclude)
+    df.drop(columns=cols_to_exclude, inplace=True)
     
     #Eliminamos variables con criterio de cardinalidad
     df_select = filter_cardinality(df)
     
     return df_select
+
+
 # --- Main execution flow ---
 def main():
     """Main function to run the data preprocessing pipeline."""
