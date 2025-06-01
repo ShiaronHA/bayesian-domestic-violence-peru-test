@@ -260,25 +260,29 @@ def update_ocupacion_columns(df):
     for col in occupation_cols:
         if col in df.columns:
             print(f"Processing occupation column: {col}")
-            df[col] = df[col].apply(lambda x: normalize_text(str(x)) if pd.notna(x) else x)
+            # Ensure the column is string type before normalize_text and clustering
+            df[col] = df[col].astype(str).apply(lambda x: normalize_text(x) if pd.notna(x) else x)
             df[col +'_cluster'] = cluster_column(df, col)
-            
-            # 1. Obtener el valor representativo para cada cluster de OCUPACION_AGRESOR
-            cluster_representatives_agresor = df.groupby('OCUPACION_AGRESOR_cluster')['OCUPACION_AGRESOR'].first().to_dict()
-
-            # 2. Actualizar la columna OCUPACION_AGRESOR usando el diccionario de representativos
-            df['OCUPACION_AGRESOR'] = df['OCUPACION_AGRESOR_cluster'].map(cluster_representatives_agresor)
-
-            # 3. Obtener el valor representativo para cada cluster de OCUPACION_VICTIMA
-            cluster_representatives_victima = df.groupby('OCUPACION_VICTIMA_cluster')['OCUPACION_VICTIMA'].first().to_dict()
-
-            # 4. Actualizar la columna OCUPACION_VICTIMA usando el diccionario de representativos
-            df['OCUPACION_VICTIMA'] = df['OCUPACION_VICTIMA_cluster'].map(cluster_representatives_victima)
         else:
             print(f"Warning: Occupation column '{col}' not found.")
+
+    # Update original columns using cluster representatives only if cluster columns were created
+    if 'OCUPACION_AGRESOR_cluster' in df.columns and 'OCUPACION_AGRESOR' in df.columns:
+        cluster_representatives_agresor = df.groupby('OCUPACION_AGRESOR_cluster')['OCUPACION_AGRESOR'].first().to_dict()
+        df['OCUPACION_AGRESOR'] = df['OCUPACION_AGRESOR_cluster'].map(cluster_representatives_agresor).astype('category')
+    else:
+        print("Warning: OCUPACION_AGRESOR_cluster or OCUPACION_AGRESOR not found, skipping update.")
+
+    if 'OCUPACION_VICTIMA_cluster' in df.columns and 'OCUPACION_VICTIMA' in df.columns:
+        cluster_representatives_victima = df.groupby('OCUPACION_VICTIMA_cluster')['OCUPACION_VICTIMA'].first().to_dict()
+        df['OCUPACION_VICTIMA'] = df['OCUPACION_VICTIMA_cluster'].map(cluster_representatives_victima).astype('category')
+    else:
+        print("Warning: OCUPACION_VICTIMA_cluster or OCUPACION_VICTIMA not found, skipping update.")
             
     # Eliminar columnas que terminan en "_cluster"
-    df = df[[col for col in df.columns if not col.endswith('_cluster')]]        
+    cols_to_drop = [col for col in df.columns if col.endswith('_cluster')]
+    if cols_to_drop:
+        df = df.drop(columns=cols_to_drop)        
     
     return df
 
