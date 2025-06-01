@@ -299,7 +299,7 @@ def clean_metadata(df):
         df_cleaned = update_values_column(df, i)
     
     # C. Pre-proceso previo a la clusterización automática    
-    df_cleaned = update_ocupacion_columns(df_cleaned, distance_threshold=0.8)
+    df_cleaned = update_ocupacion_columns(df_cleaned)
             
     print("Metadata cleaning finished.")
     return df_cleaned
