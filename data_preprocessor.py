@@ -5,12 +5,14 @@ import os
 import pyreadstat
 import unicodedata
 import seaborn as sns
+from sentence_transformers import SentenceTransformer
+from scipy.cluster.hierarchy import linkage, fcluster
 
 # Define the input and output paths based on the project structure
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DATA_DIR = os.path.join(BASE_DIR, 'data', 'input_data')
 OUTPUT_DATA_DIR = os.path.join(BASE_DIR, 'data')
-PLOTS_DIR = os.path.join(BASE_DIR, 'plots') # Define a directory for plots
+PLOTS_DIR = os.path.join(BASE_DIR, 'plots') 
 
 # List of data files to process
 DATA_FILES_INFO = [
@@ -27,7 +29,6 @@ DATA_FILES_INFO = [
 ]
 
 # Normalizador de texto
-
 def normalize_text(text):
     if not isinstance(text, str):
         return str(text)
@@ -55,7 +56,6 @@ def decode_dataframe(df, meta):
                 except Exception as e:
                     print(f"Warning: Could not process label for key {k} in column {col}: {e}")
             
-            # Map values, handling potential missing keys by keeping original value
             df_decoded[col] = df_decoded[col].apply(lambda x: normalized_value_labels.get(x, normalize_text(str(x)) if pd.notna(x) else x))
             df_decoded[col] = df_decoded[col].astype('category')
     return df_decoded
@@ -68,11 +68,6 @@ def load_and_process_data(input_dir, files_info):
         try:
             print(f"Processing file: {file_info['name']}...")
             df, meta = pyreadstat.read_sav(file_path)
-            
-            # Add year and part columns for traceability if needed
-            #df['ANIO_REGISTRO'] = file_info['year']
-            #df['PARTE_REGISTRO'] = file_info['part']
-            
             df_decoded = decode_dataframe(df, meta)
             all_dfs_decoded.append(df_decoded)
             print(f"Successfully processed and decoded: {file_info['name']}")
@@ -85,33 +80,24 @@ def load_and_process_data(input_dir, files_info):
         return pd.DataFrame()
 
     print("Concatenating all decoded dataframes...")
-    # Concatenate, being mindful of potentially different columns
-    # Use outer join to keep all columns, then decide on handling NaNs or specific columns
     try:
         combined_df = pd.concat(all_dfs_decoded, ignore_index=True, sort=False) 
         print("Concatenation successful.")
     except Exception as e:
         print(f"Error during concatenation: {e}")
         return pd.DataFrame()
-
     return combined_df
 
 def plot_categorical_unique_counts(df, top_n=50, save_path=None):
     """Generates and displays a bar plot of the top N categorical columns by unique value counts,
        and optionally saves it to a file."""
-    # Obtiene las columnas categóricas y la cantidad de valores únicos para cada una
     categorical_columns = df.select_dtypes(include=['category']).columns
     if categorical_columns.empty:
         print("No categorical columns found to plot.")
         return
 
     unique_value_counts = {col: df[col].nunique() for col in categorical_columns}
-
-    # Ordenar unique_value_counts por valores (cantidad de valores únicos) en orden descendente
-    # Convert to list of items for slicing, then take top_n
     sorted_items = sorted(unique_value_counts.items(), key=lambda item: item[1], reverse=True)
-    
-    # Select top_n items
     top_n_items = sorted_items[:top_n]
     
     if not top_n_items:
@@ -119,8 +105,6 @@ def plot_categorical_unique_counts(df, top_n=50, save_path=None):
         return
 
     top_n_unique_value_counts = dict(top_n_items)
-
-    # Crear el gráfico de barras usando los datos ordenados
     plt.figure(figsize=(15, 8))
     sns.barplot(x=list(top_n_unique_value_counts.keys()), y=list(top_n_unique_value_counts.values()))
     plt.xticks(rotation=90)
@@ -135,14 +119,475 @@ def plot_categorical_unique_counts(df, top_n=50, save_path=None):
             print(f"Plot saved to {save_path}")
         except Exception as e:
             print(f"Error saving plot to {save_path}: {e}")
-    
     #plt.show() 
 
+def replace_values(df, columns):
+    """Reemplaza los valores 1.0, 1, 0  por SI, SI, NO respectivamente en las columnas especificadas.
+
+    Args:
+        df: El DataFrame a modificar.
+        columns: Una lista de nombres de columnas a modificar.
+
+    Returns:
+        El DataFrame modificado.
+    """
+    for column in columns:
+        df[column] = df[column].replace({1.0: 'SI', '1': 'SI', '0': 'NO'})
+    return df
+
+def update_values_column(df, column):
+
+  if column == 'NIVEL_DE_RIESGO_VICTIMA':
+      replace_dict = {'RIESGO SEVERO': 'SEVERO', 'RIESGO MODERADO': 'MODERADO', 'RIESGO LEVE': 'LEVE'}
+  elif column == 'INFORMANTE':
+      replace_dict = {'LA PERSONA USUARIA NO ES LA PERSONA INFORMANTE': 'NO', 'LA PERSONA USUARIA SI ES LA PERSONA INFORMANTE': 'SI'}
+  elif column == 'FORMA_INGRESO':
+      replace_dict = {'PNP':'DERIVADO POR LA PNP',
+                      'FICHA NOTIFICACION DE CASO':'FICHA DE NOTIFICACION DE CASO',
+                      'PERSONAL DEL CEM DERIVA EL CASO':'CENTRO EMERGENCIA MUJER (CEM)','FICHA DE DERIVACION DE CEM':'CENTRO EMERGENCIA MUJER (CEM)','FICHA DE CEM':'CENTRO EMERGENCIA MUJER (CEM)',
+                      'FICHA DE EIU':'Equipo Itinerante de Urgencia (EIU)',
+                      'DERIVADO POR LA UGEL O LA DRE':'OFICIO EMITIDO POR LA UGEL O LA DRE',
+                      'MINISTERIO PUBLICO':'DERIVADO POR EL MINISTERIO PUBLICO',
+                      'ACUDE DIRECTAMENTE AL SERVICIO':'PERSONA ACUDE DIRECTAMENTE AL SERVICIO',
+                      'ACUDE AL SERVICIO POR OTRO MOTIVO':'PERSONA ACUDE DIRECTAMENTE AL SERVICIO POR OTRO MOTIVO O SOLICITA ORIENTACION POR OTRAS MATERIAS',
+                      'DERIVADO POR ESTABLECIMIENTO DE SALUD':'FICHA DE NOTIFICACION DEL ESTABLECIMIENTO DE SALUD (EE.SS.)',
+                      'FICHA DE DERIVACION DE LINEA 100':'FICHA DE DERIVACION DE LA LINEA 100','FICHA LINEA 100':'FICHA DE DERIVACION DE LA LINEA 100',
+                      'FICHA DE DERIVACION DE CHAT 100':'FICHA DE DERIVACION DEL CHAT 100','FICHA CHAT 100':'FICHA DE DERIVACION DEL CHAT 100',
+                      'ESTRATEGIA RURAL (ER)':'SERVICIO DE ATENCION RURAL (SAR)','ESTRATEGIA RURAL':'SERVICIO DE ATENCION RURAL (SAR)',
+                      'FICHA DE NOTIFICACION DEL CEM':'CENTRO EMERGENCIA MUJER (CEM)',
+                      'PODER JUDICIAL':'DERIVADO POR EL PODER JUDICIAL',
+                      'SAU':'SERVICIO DE ATENCION URGENTE (SAU)',
+                      'CAI':'CENTRO DE ATENCION INSTITUCIONAL (CAI)'
+                      }
+  elif column == 'LENGUA_MATERNA_VICTIMA':
+      replace_dict = {'LENGUA EXTRANJERA':'OTRA LENGUA EXTRANJERA', 'INGLES':'OTRA LENGUA EXTRANJERA',
+                      'LENGUA DE SENAS':'LENGUA DE SENAS PERUANAS',
+                      'OTRA LENGUA NATIVA':'OTRA LENGUA INDIGENA U ORIGINARIA',
+                      'OTRA LENGUA MATERNA':'OTRA LENGUA INDIGENA U ORIGINARIA',
+                      'YINE':'OTRA LENGUA INDIGENA U ORIGINARIA','WAMPIS':'OTRA LENGUA INDIGENA U ORIGINARIA',
+                      'MATSES':'OTRA LENGUA INDIGENA U ORIGINARIA','HARAKBUT':'OTRA LENGUA INDIGENA U ORIGINARIA',
+                      'KAKINTE (CAQUINTE)':'OTRA LENGUA INDIGENA U ORIGINARIA', 'KAKATAIBO':'OTRA LENGUA INDIGENA U ORIGINARIA',
+                      'SHIPIBO':'SHIPIBO - KONIBO',
+                      'NO ESCUCHA Y/O NO HABLA':'NO ESCUCHA/O NI HABLA/O','PERSONA CON DISCAPACIDAD FISICA PARA HABLAR':'NO ESCUCHA/O NI HABLA/O',
+                      'YAMINAHUA':'OTRA LENGUA INDIGENA U ORIGINARIA','CAPANAHUA':'OTRA LENGUA INDIGENA U ORIGINARIA','AMAHUACA':'OTRA LENGUA INDIGENA U ORIGINARIA','CASHINAHUA':'OTRA LENGUA INDIGENA U ORIGINARIA',
+                      'SHARANAHUA':'OTRA LENGUA INDIGENA U ORIGINARIA','IQUITU':'OTRA LENGUA INDIGENA U ORIGINARIA','CAUQUI':'OTRA LENGUA INDIGENA U ORIGINARIA',
+                      'YANESHA':'OTRA LENGUA INDIGENA U ORIGINARIA','TIKUNA (TICUNA)':'OTRA LENGUA INDIGENA U ORIGINARIA','NOMATSIGENGA':'OTRA LENGUA INDIGENA U ORIGINARIA','OCAINA':'OTRA LENGUA INDIGENA U ORIGINARIA','MURUI - MUINANI':'OTRA LENGUA INDIGENA U ORIGINARIA',
+                      'JAQARU':'OTRA LENGUA INDIGENA U ORIGINARIA','NANTI':'OTRA LENGUA INDIGENA U ORIGINARIA','BORA':'OTRA LENGUA INDIGENA U ORIGINARIA',
+                      'MATSIGENKA':'MATSIGENKA / MACHIGUENGA',
+                      'AWAJUN':'AWAJUN / AGUARUNA',
+                      'SHAWI':'SHAWI / CHAYAHUITA',
+                      'KANDOZI CHAPRA':'OTRA LENGUA INDIGENA U ORIGINARIA','MADIJA (CULINA)':'OTRA LENGUA INDIGENA U ORIGINARIA','TAUSHIRO':'OTRA LENGUA INDIGENA U ORIGINARIA',
+                      'ARABELA':'OTRA LENGUA INDIGENA U ORIGINARIA','URARINA':'OTRA LENGUA INDIGENA U ORIGINARIA'
+                      }
+  elif column == 'ETNIA_VICTIMA':
+      replace_dict = {'NO SABE':'NO SABE/NO RESPONDE','NO ESPECIFICA':'NO SABE/NO RESPONDE',
+                      'OTRA ETNIA':'OTRO',
+                      'AYMARA':'AIMARA',
+                      'NEGRO, MORENO, ZAMBO, MULATO O AFRODESCENDIENTE':'NEGRO, MORENO, ZAMBO, MULATO O AFRODESCENDIENTE O PARTE DEL PUEBLO AFROPERUANO',
+                      'NEGRO, MORENO, ZAMBO, MULATO, AFRODESCENDIENTE O PARTE DEL PUEBLO AFROPERUANO':'NEGRO, MORENO, ZAMBO, MULATO O AFRODESCENDIENTE O PARTE DEL PUEBLO AFROPERUANO',
+                      'NEGRO, MORENO, ZAMBO, MULATO/PUEBLO AFROPERUANO':'NEGRO, MORENO, ZAMBO, MULATO O AFRODESCENDIENTE O PARTE DEL PUEBLO AFROPERUANO',
+                      'NATIVO O INDIGENA DE LA AMAZONIA':'INDIGENA U ORIGINARIO DE LA AMAZONIA',
+                      'POBLACION AFROPERUANA (NEGRO, MULATO, ZAMBO, AFROPERUANO)':'NEGRO, MORENO, ZAMBO, MULATO O AFRODESCENDIENTE O PARTE DEL PUEBLO AFROPERUANO',
+                      'PERTENECIENTE DE OTRO PUEBLO INDIGENA U ORIGINARIO':'PERTENECIENTE O PARTE DE OTRO PUEBLO INDIGENA U ORIGINARIO'
+      }
+  elif column == 'LUGAR_TENTATIVA_DE_FEMINICIDIO':
+      replace_dict = {'CALLE-VIA PUBLICA':'CALLE - VIA PUBLICA',
+                      'CALLE  - VIA PUBLICA':'CALLE - VIA PUBLICA',
+                      'CASA DE PERSONA AGRESORA':'CASA DE AGRESOR'
+      }
+  elif column == 'MODALIDAD_TENTATIVA_DE_FEMINICIDIO':
+      replace_dict = {'DISPARO CON ARMA DE FUEGO':'DISPARO POR PROYECTIL DE ARMA DE FUEGO (PAF)',
+                      'AGRESION OBJETO CONTUNDENTE':'AGRESIONES CON OBJETOS CONTUNDENTES, DUROS O PESADOS'
+      }
+  elif column == 'TIPO_VIOLENCIA':
+      replace_dict = {'VIOLENCIA ECONOMICA - PATRIMONIAL': 'ECONOMICA O PATRIMONIAL', 'VIOLENCIA ECONOMICA O PATRIMONIAL': 'ECONOMICA O PATRIMONIAL',
+                      'VIOLENCIA PSICOLOGICA':'PSICOLOGICA',
+                      'VIOLENCIA FISICA':'FISICA',
+                      'VIOLENCIA SEXUAL':'SEXUAL'}
+  else:
+      return df
+
+
+  if column in df.columns:
+      existing_values = df[column].unique().tolist()
+      valid_replacements = {k: v for k, v in replace_dict.items() if k in existing_values}
+      if valid_replacements:
+          df[column] = df[column].replace(valid_replacements)
+
+  return df
+
+def cluster_column(df, column_name, threshold=0.8):
+    """Clusters values in a specified column based on similarity.
+
+    Args:
+        df: The DataFrame containing the column.
+        column_name: The name of the column to cluster.
+        threshold: The distance threshold for forming clusters.
+
+    Returns:
+        A pandas Series with cluster labels for the specified column.
+    """
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    column = df[column_name]
+    unique_values = column.dropna().unique()
+
+    if len(unique_values) > 1:
+
+      if pd.api.types.is_categorical_dtype(column):
+          unique_values = column.dropna().unique()
+
+          embeddings = model.encode(unique_values.astype(str))
+          print(f'La columa {column_name}: {unique_values}')
+          similarities = model.similarity(embeddings, embeddings)
+          distance_matrix = 1 - similarities
+          linkage_matrix = linkage(distance_matrix, method='ward')
+          clusters = fcluster(linkage_matrix, threshold, criterion='distance')
+
+          # Creamos mapping
+          cluster_mapping = dict(zip(unique_values, clusters))
+          clusters = column.map(cluster_mapping)
+          return pd.Series(clusters, index=column.index)
+      else:
+          return column
+    else:
+        print(f"La columna '{column_name}' tiene menos de 2 valores únicos. No se aplicará clustering.")
+        return column
+
+
+def update_ocupacion_columns(df):
+    """Standardizes and clusters occupation columns."""
+    occupation_cols = ['OCUPACION_VICTIMA', 'OCUPACION_AGRESOR']
+    for col in occupation_cols:
+        if col in df.columns:
+            print(f"Processing occupation column: {col}")
+            df[col] = df[col].apply(lambda x: normalize_text(str(x)) if pd.notna(x) else x)
+            df[col +'_cluster'] = cluster_column(df, col)
+            
+            # 1. Obtener el valor representativo para cada cluster de OCUPACION_AGRESOR
+            cluster_representatives_agresor = df.groupby('OCUPACION_AGRESOR_cluster')['OCUPACION_AGRESOR'].first().to_dict()
+
+            # 2. Actualizar la columna OCUPACION_AGRESOR usando el diccionario de representativos
+            df['OCUPACION_AGRESOR'] = df['OCUPACION_AGRESOR_cluster'].map(cluster_representatives_agresor)
+
+            # 3. Obtener el valor representativo para cada cluster de OCUPACION_VICTIMA
+            cluster_representatives_victima = df.groupby('OCUPACION_VICTIMA_cluster')['OCUPACION_VICTIMA'].first().to_dict()
+
+            # 4. Actualizar la columna OCUPACION_VICTIMA usando el diccionario de representativos
+            df['OCUPACION_VICTIMA'] = df['OCUPACION_VICTIMA_cluster'].map(cluster_representatives_victima)
+        else:
+            print(f"Warning: Occupation column '{col}' not found.")
+            
+    # Eliminar columnas que terminan en "_cluster"
+    df = df[[col for col in df.columns if not col.endswith('_cluster')]]        
+    
+    return df
+
+def clean_metadata(df):
+    """Cleans metadata, including clustering text fields like occupation."""
+    print("Starting metadata cleaning...")
+    
+    columns_to_convert = ['INFORMANTE', 'FORMA_INGRESO', 'LENGUA_MATERNA_VICTIMA','ETNIA_VICTIMA','NIVEL_EDUCATIVO_VICTIMA','OCUPACION_VICTIMA','AGRESOR_EXTRANJERO','VINCULO_PAREJA', 'VINCULO_FAMILIAR','SIN_VINCULO', 'NIVEL_EDUCATIVO_AGRESOR','OCUPACION_AGRESOR','FACTOR_VICTIMA_DISCAPACIDAD','NIVEL_DE_RIESGO_VICTIMA','LUGAR_TENTATIVA_DE_FEMINICIDIO','SITUACION_AGRESOR','TIPO_VIOLENCIA','MODALIDAD_TENTATIVA_DE_FEMINICIDIO','MOVIL_TENTATIVA_DE_FEMINICIDIO','MOVIL_TENTATIVA_DE_FEMINICIDIO','MODALIDADES_VCM','FACTOR_VICTIMA_ABUSO_CONSUMO_ALCOHOL','FACTOR_VICTIMA_CONSUME_DROGAS']
+    for c in columns_to_convert:
+        df[c] = df[c].astype('category')
+    
+    # A. Columnas categoricas por corregir automáticamente (Valores igual o menor a 2)
+    columns_to_modified = ['FACTOR_VICTIMA_DISCAPACIDAD', 'FACTOR_VICTIMA_ABUSO_CONSUMO_ALCOHOL', 'FACTOR_VICTIMA_CONSUME_DROGAS','AGRESOR_EXTRANJERO']
+    df = replace_values(df, columns_to_modified)
+
+    # B. Columnas categoricas por corregir manualmente
+    for i in df.columns:
+        df_cleaned = update_values_column(df, i)
+    
+    # C. Pre-proceso previo a la clusterización automática    
+    df_cleaned = update_ocupacion_columns(df_cleaned, distance_threshold=0.8)
+            
+    print("Metadata cleaning finished.")
+    return df_cleaned
+
+def clean_data_not_violence_and_mistakes(df):
+    """Cleans data by removing cases not classified as domestic violence and other inconsistencies."""
+    print("Starting specific data cleaning (not violence, mistakes)...")
+
+    df.drop(df[df['CONDICION'] == 'DERIVADO'].index, inplace=True)
+    #Eliminar registros donde  df['DPTO_DOMICILIO'] + df['PROV_DOMICILIO'] + df['DIST_DOMICILIO'] == 999999
+    df = df[df['DPTO_DOMICILIO'] + df['PROV_DOMICILIO'] + df['DIST_DOMICILIO'] != '999999']
+    
+    return df
+
+def calculate_and_classify_violence_level(df, input_data_dir):
+    """Calculates violence ratio and classifies violence level based on UBIGEO."""
+    df_copy = df.copy()
+    geo_cols = ['DPTO_DOMICILIO', 'PROV_DOMICILIO', 'DIST_DOMICILIO']
+
+    print("Calculating and classifying violence level based on UBIGEO...")
+    
+    if not all(col in df_copy.columns for col in geo_cols):
+        print("Warning: Geo columns for UBIGEO not found. Skipping violence level calculation.")
+        return df 
+
+    df_copy['UBIGEO'] = df_copy[geo_cols[0]].astype(str) + df_copy[geo_cols[1]].astype(str) + df_copy[geo_cols[2]].astype(str)
+    df_copy['UBIGEO'] = df_copy['UBIGEO'].str.zfill(6)
+    
+    try:
+        #df_ubigeo = pd.read_csv(os.path.join(input_data_dir, 'TB_UBIGEOS.csv'), delimiter=';')
+        df_poblacion = pd.read_excel(os.path.join(input_data_dir, 'Poblacion_distritos.xlsx'))
+    except FileNotFoundError as e:
+        print(f"Error: UBIGEO or Population file not found: {e}. Skipping violence level calculation.")
+        return df 
+
+    df_poblacion['2022'] = pd.to_numeric(df_poblacion['2022'], errors='coerce')
+    df_poblacion.dropna(subset=['2022'], inplace=True)
+    df_poblacion['2022'] = df_poblacion['2022'].astype(int)
+
+    # Contar casos por UBIGEO
+    df_casos = df_copy.groupby('UBIGEO').size().reset_index(name='casos_reportados')
+    df_poblacion_reducido = df_poblacion[['UBIGEO', '2022']].rename(columns={'2022': 'poblacion'})
+    df_poblacion_reducido['UBIGEO'] = df_poblacion_reducido['UBIGEO'].astype(str).str.zfill(6)
+
+    # Unir ambos DataFrames por UBIGEO
+    df_merge = pd.merge(df_casos, df_poblacion_reducido, on='UBIGEO', how='left')
+    df_merge['ratio_violencia'] = df_merge['casos_reportados'] / df_merge['poblacion']
+
+    def clasificar_violencia(ratio):
+        if pd.isna(ratio): return 'Desconocido'
+        if ratio < 0.01: return 'Bajo'
+        elif ratio < 0.02: return 'Medio'
+        else: return 'Alto'
+        
+    df_merge['nivel_violencia'] = df_merge['ratio_violencia'].apply(clasificar_violencia)
+
+    df_copy = pd.merge(df_copy, df_merge[['UBIGEO', 'nivel_violencia']], on='UBIGEO', how='left')
+    df_copy = df_copy.drop(columns=geo_cols + ['UBIGEO'], errors='ignore')
+    return df_copy
+
+def preprocess_data(df):
+    
+    df = clean_data_not_violence_and_mistakes(df)
+    
+    # Calculate and add violence level based on UBIGEO
+    df = calculate_and_classify_violence_level(df, INPUT_DATA_DIR)
+
+    # 1. Conversión de variables, agrupaciones
+    
+    ## A. Variable Seguro a variable binaria
+    columns_seguro = ['PNP_SEGURO', 'PRIVADO_SEGURO', 'SIS_SEGURO', 'ESSALUD_SEGURO', 'OTRO_SEGURO']
+    columns_seguro_no = ['NINGUN_SEGURO']
+    
+    for col in columns_seguro:
+        df.loc[df[col] == 'SI', 'SEGURO_VICTIMA'] = 'SI'
+
+    for col in columns_seguro_no:
+        df.loc[df[col] == 'SI', 'SEGURO_VICTIMA'] = 'NO'
+    
+    df['SEGURO_VICTIMA'] = df['SEGURO_VICTIMA'].astype('category')
+    df = df.drop(columns=columns_seguro + columns_seguro_no, errors='ignore')
+    
+    ## B.Victima-Agresor Peruana a binaria
+    df.loc[df['VICTIMA_EXTRANJERA'] == 'SI', 'VICTIMA_PERUANA'] = 'NO'
+    df.loc[df['AGRESOR_EXTRANJERO'] == 'SI', 'AGRESOR_PERUANO'] = 'NO'
+
+    df = df.drop(columns=['VICTIMA_EXTRANJERA','AGRESOR_EXTRANJERO'])
+    
+    ## C. Victima recibe tratamiento a binaria
+    cols_treatment = ['TRATAMIENTO_PSICOLOGICO','TRATAMIENTO_PSIQUIATRICO','ATENCION_MEDICA', 'OTRO_TRATAMIENTO','CONTINUA_RECIBIENDO_TRATAMIENTO']
+
+    for col in cols_treatment:
+        df.loc[df[col] == 'SI', 'TRATAMIENTO_VICTIMA'] = 'SI'
+
+    df.loc[df['NINGUN_TRATAMIENTO'] == 'SI', 'TRATAMIENTO_VICTIMA'] = 'NO'
+    df['TRATAMIENTO_VICTIMA'] = df['TRATAMIENTO_VICTIMA'].astype('category')
+    df = df.drop(columns=cols_treatment + ['NINGUN_TRATAMIENTO'])
+    
+    ## D. Agregamos categoria NO a columnas con un solo valor (SI)
+    cols_risk_factor_binary = [
+        'FACTOR_AGRESOR_CONSUMO_ALCOHOL', 'FACTOR_AGRESOR_CONSUME_DROGA',
+        'FACTOR_VICTIMA_DISCAPACIDAD', 'FACTOR_VICTIMA_ABUSO_CONSUMO_ALCOHOL', 
+        'FACTOR_VICTIMA_CONSUME_DROGAS'
+    ]
+    for col in cols_risk_factor_binary:
+        if col in df.columns:
+            if df[col].dtype.name == 'category':
+                if 'NO' not in df[col].cat.categories:
+                    df[col] = df[col].cat.add_categories(['NO'])
+            df[col] = df[col].fillna('NO') 
+
+    ## E. Conversión factor de riesgo (vínculo afectivo)
+    cols_emotional_bond = ['VINCULO_AFECTIVO_FAMILIA','VINCULO_AFECTIVO_AMIGOS','VINCULO_AFECTIVO_VECINOS', 'VINCULO_AFECTIVO_ASOCIACIONES','VINCULO_AFECTIVO_ORGANIZACIONES_CIVICAS','VINCULO_AFECTIVO_COMPAÑEROS_TRABAJO','VINCULO_AFECTIVO_OTRO']
+    cols_no_emotional_bond = ['VINCULO_AFECTIVO_NINGUNO']
+
+    for col in cols_emotional_bond:
+        df.loc[df[col] == 'SI', 'VINCULO_AFECTIVO'] = 'SI'
+
+    for col in cols_no_emotional_bond:
+        df.loc[df[col] == 'SI', 'VINCULO_AFECTIVO'] = 'NO'
+
+    df['VINCULO_AFECTIVO'] = df['VINCULO_AFECTIVO'].astype('category')
+    df = df.drop(columns=cols_emotional_bond + cols_no_emotional_bond)
+    
+    ## F. Conversión de signos de Tipo de violencia
+    violence_types_map = {
+        'VIOLENCIA_ECONOMICA': ['PERTURBACION_POSESION','MENOSCABO_TENENCIA_BIENES','PERDIDA_DERECHOS_PATRIMONIALES','LIMITACION_RECURSOS_ECONOMICOS','PRIVACION_MEDIOS_INDISPENSABLES','INCUMPLIMIENTO_OBLIGACION_ALIMENTARIA','CONTROL_DE_INGRESOS','PERCEPCION_SALARIO_MENOR','PROHIBIR_DES_LABORAL','SUSTRAER_INGRESOS', 'FRACCION_RECURSOS_NEC','OBLIGACION_ALIMENTOS','DESTRUIR_INST_TRABAJO','DESTRUIR_BIEN_PERSONAL','OTRA_VECON_PATRIM'],
+        'VIOLENCIA_PSICOLOGICA': ['GRITOS_INSULTOS','VIOLENCIA_RACIAL','INDIFERENCIA','DISCR_ORIENTACION_SEXUAL','DISCR_GENERO','DISCR_IDENTIDAD_GENERO', 'RECHAZO','DESVALORIZACION_HUMILLACION','AMENAZA_QUITAR_HIJOS','OTRAS_AMENAZAS','PROHIBE_RECIBIR_VISITAS','PROHIBE_ESTUDIAR_TRABAJAR_SALIR', 'ROMPE_DESTRUYE_COSAS','VIGILANCIA_CONTINUA_PERSECUCION','BOTAR_CASA','AMENAZA_DE_MUERTE','ABANDONO','OTRA_VPSI'],
+        'VIOLENCIA_FISICA': ['PUNTAPIES_PATADAS','PUÑETAZOS','BOFETADAS','JALONES_CABELLO','MORDEDURA','OTRAS_AGRESIONES','EMPUJONES','GOLPES_CON_PALOS', 'LATIGAZO','AHORCAMIENTO','HERIDAS_CON_ARMAS','GOLPES_CON_OBJETOS_CONTUNDENTES','NEGLIGENCIA','QUEMADURA','OTRA_VFIS'],
+        'VIOLENCIA_SEXUAL': ['HOSTIGAMIENTO_SEXUAL','ACOSO_SEX_ESP_PUB','VIOLACION','TRATA_CON_FINES_EXPLOTACION_SEXUAL','EXPLOTACION_SEXUAL','PORNOGRAFIA', 'ACOSO_SEXUAL','OTRA_VSEX']
+    }
+    all_subtype_cols = []
+    for main_type, subtypes in violence_types_map.items():
+        existing_subtypes = [s for s in subtypes if s in df.columns]
+        all_subtype_cols.extend(existing_subtypes)
+        if existing_subtypes:
+            df[main_type] = df[existing_subtypes].eq('SI').any(axis=1).map({True: 'SI', False: 'NO'})
+        else:
+            df[main_type] = 'NO' 
+        df[main_type] = df[main_type].astype('category')
+    df = df.drop(columns=all_subtype_cols, errors='ignore')
+    
+    ## G. Hijos a binaria
+    if 'HIJAS_VIVAS' in df.columns and 'HIJOS_VIVOS' in df.columns:
+        df['HIJOS_VIVIENTES'] = df.apply(lambda x: 'NO' if (x['HIJAS_VIVAS'] == 0.0 and x['HIJOS_VIVOS'] == 0.0) else 'SI', axis=1)
+        df['HIJOS_VIVIENTES'] = df['HIJOS_VIVIENTES'].astype('category')
+        df = df.drop(columns=['HIJAS_VIVAS','HIJOS_VIVOS'], errors='ignore')
+
+    #2. Limpieza de duplicados
+    initial_rows = df.shape[0]
+    df = df.drop_duplicates()
+    print(f"Cantidad de registros duplicados eliminados: {initial_rows - df.shape[0]}")
+    
+    #3. Limpieza de nulos
+    umbral_nulos = 0.50 
+    ratio_nulos = df.isnull().sum() / df.shape[0]
+    columnas_a_eliminar_por_nulos = ratio_nulos[ratio_nulos > umbral_nulos].index
+    df = df.drop(columns=columnas_a_eliminar_por_nulos)
+    print(f"Columnas eliminadas por superar el umbral de nulos ({umbral_nulos*100}%): {len(columnas_a_eliminar_por_nulos)}")
+    
+    initial_rows_before_dropna = df.shape[0]
+    df.dropna(inplace=True)
+    print(f"Filas eliminadas por contener valores nulos restantes: {initial_rows_before_dropna - df.shape[0]}")
+    print (f'Nro de registros completos con {df.shape[1]} variables: {df.shape[0]}')
+    
+    #4. Discretización de variables continuas
+    ## Edad
+    bins = [0, 6, 12, 18, 26, 36, 60, 121] 
+    labels = ['PRIMERA INFANCIA', 'INFANCIA', 'ADOLESCENCIA', 'JOVEN', 'ADULTO JOVEN', 'ADULTO', 'ADULTO MAYOR']
+    if 'EDAD_VICTIMA' in df.columns:
+        df.loc[:, 'EDAD_VICTIMA'] = pd.cut(df['EDAD_VICTIMA'], bins=bins, labels=labels, right=False, ordered=True)
+    if 'EDAD_AGRESOR' in df.columns:
+        df.loc[:, 'EDAD_AGRESOR'] = pd.cut(df['EDAD_AGRESOR'], bins=bins, labels=labels, right=False, ordered=True)
+    
+    return df
+
+def reduce_cardinality (df):
+    
+    # A. LENGUA_MATERNA_VICTIMA
+    top3 = ['CASTELLANO', 'QUECHUA', 'AIMARA']
+    # Reemplazar las clases que no están en top3 por 'OTRAS'
+    df['LENGUA_MATERNA_VICTIMA'] = df['LENGUA_MATERNA_VICTIMA'].apply(
+        lambda x: x if x in top3 else 'OTRAS'
+    )
+    df['LENGUA_MATERNA_VICTIMA'] = df['LENGUA_MATERNA_VICTIMA'].astype('category')
+    
+    # B. ETNIA_VICTIMA
+    df['ETNIA_VICTIMA'] = df['ETNIA_VICTIMA'].astype(str)
+
+    df['ETNIA_VICTIMA'] = df['ETNIA_VICTIMA'].replace({
+        'INDIGENA U ORIGINARIO DE LA AMAZONIA': 'INDIGENA/NEGRO/NO SABE',
+        'PERTENECIENTE O PARTE DE OTRO PUEBLO INDIGENA U ORIGINARIO': 'INDIGENA/NEGRO/NO SABE',
+        'NO SABE/NO RESPONDE': 'INDIGENA/NEGRO/NO SABE',
+        'NEGRO, MORENO, ZAMBO, MULATO O AFRODESCENDIENTE O PARTE DEL PUEBLO AFROPERUANO':'INDIGENA/NEGRO/NO SABE'
+    })
+
+    df['ETNIA_VICTIMA'] = df['ETNIA_VICTIMA'].astype('category')
+    
+    # C. NIVEL_EDUCATIVO_VICTIMA
+
+    #Reemplazar las clases 'SIN NIVEL', 'INICIAL', 'BASICA ESPECIAL' por 'SIN NIVEL/INICIAL/BASICA ESPECIAL'
+    df['NIVEL_EDUCATIVO_VICTIMA'] = df['NIVEL_EDUCATIVO_VICTIMA'].astype(str)
+
+    df['NIVEL_EDUCATIVO_VICTIMA'] = df['NIVEL_EDUCATIVO_VICTIMA'].replace({
+        'SIN NIVEL': 'SIN NIVEL/INICIAL/BASICA ESPECIAL',
+        'INICIAL': 'SIN NIVEL/INICIAL/BASICA ESPECIAL',
+        'BASICA ESPECIAL': 'SIN NIVEL/INICIAL/BASICA ESPECIAL',
+        'SUPERIOR TECNICO INCOMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
+        'SUPERIOR UNIVERSITARIO INCOMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
+        'SUPERIOR TECNICO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
+        'SUPERIOR UNIVERSITARIO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
+    })
+
+    df['NIVEL_EDUCATIVO_VICTIMA'] = df['NIVEL_EDUCATIVO_VICTIMA'].astype('category')
+    
+    #NIVEL_EDUCATIVO_AGRESOR
+    df['NIVEL_EDUCATIVO_AGRESOR'].value_counts()
+
+    #Reemplazar las clases 'SIN NIVEL', 'INICIAL', 'BASICA ESPECIAL' por 'SIN NIVEL/INICIAL/BASICA ESPECIAL'
+    df['NIVEL_EDUCATIVO_AGRESOR'] = df['NIVEL_EDUCATIVO_AGRESOR'].astype(str)
+
+    df['NIVEL_EDUCATIVO_AGRESOR'] = df['NIVEL_EDUCATIVO_AGRESOR'].replace({
+        'SIN NIVEL': 'SIN NIVEL/INICIAL/BASICA ESPECIAL',
+        'INICIAL': 'SIN NIVEL/INICIAL/BASICA ESPECIAL',
+        'BASICA ESPECIAL': 'SIN NIVEL/INICIAL/BASICA ESPECIAL',
+        'SUPERIOR TECNICO INCOMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
+        'SUPERIOR UNIVERSITARIO INCOMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
+        'SUPERIOR TECNICO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
+        'SUPERIOR UNIVERSITARIO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
+    })
+
+    df['NIVEL_EDUCATIVO_AGRESOR'] = df['NIVEL_EDUCATIVO_AGRESOR'].astype('category')
+
+    return df
+
+def filter_cardinality(df):
+    # Obtener las columnas categóricas y la cantidad de valores únicos para cada una
+    categorical_columns = df.select_dtypes(include=['category']).columns
+    unique_value_counts = {col: df[col].nunique() for col in categorical_columns}
+    high_cardinality_cols = [col for col, count in unique_value_counts.items() if count > 40]
+    print(f'la variable a eliminar es: {high_cardinality_cols}')
+
+    #A. Eliminamos variables con mucha cardinalidad (>50)
+    df.drop(high_cardinality_cols, axis=1, inplace=True)
+    
+    #B. Reducción de cardinalidad en algunas variables
+    df = reduce_cardinality(df)
+    
+    #C. Eliminamos variables con cardinalidad igual a 1.
+    unique_cardinality_cols = [col for col, count in unique_value_counts.items() if count == 1]
+    print(f'las variables a eliminar son: {unique_cardinality_cols}')
+    df.drop(unique_cardinality_cols, axis=1, inplace=True)
+    
+    #D. Eliminamos variables binarias con una categoria menor al 3% de todos los datos
+    
+    binary_cols = [col for col, count in unique_value_counts.items() if count == 2]
+    threshold = 0.03 * len(df)
+
+    binary_cols_to_drop = []
+
+    for col in binary_cols:
+        value_counts = df[col].value_counts(dropna=False)
+        if value_counts.min() < threshold:
+            binary_cols_to_drop.append(col)
+
+    print(f'Se eliminarán estas variables binarias por baja frecuencia: {binary_cols_to_drop}')
+    df.drop(columns=binary_cols_to_drop, inplace=True)
+    
+    return df
+
+def feature_selection(df):
+    """Selects relevant features for analysis, dropping unnecessary columns."""
+    print("Starting feature selection...")
+    
+    cols_to_exclude = ['FECHA_INGRESO', 'DPTO_DOMICILIO', 'PROV_DOMICILIO', 'DIST_DOMICILIO', 'FORMA_INGRESO','CENTRO_POBLADO_DOMICILIO','CEM','TIPO_VIOLENCIA',
+                   'INFORMANTE','DESEA_PATROCINIO_LEGAL','CUENTA_MEDIDAS_PROTECCION','FACTOR_AGRESOR_CONSUMO_ALCOHOL','FACTOR_AGRESOR_CONSUME_DROGA']
+
+    df = df.drop(columns=cols_to_exclude)
+    
+    #Eliminamos variables con criterio de cardinalidad
+    df_select = filter_cardinality(df)
+    
+    return df_select
+# --- Main execution flow ---
 def main():
     """Main function to run the data preprocessing pipeline."""
     print("Starting data preprocessing...")
     
-    # Create output and plots directories if they don't exist
     for dir_path in [OUTPUT_DATA_DIR, PLOTS_DIR]:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
@@ -151,44 +596,39 @@ def main():
     combined_df = load_and_process_data(INPUT_DATA_DIR, DATA_FILES_INFO)
 
     if not combined_df.empty:
-        # --- Placeholder for further data cleaning and feature selection ---
-        # Example: Select relevant columns (adjust column names as per your actual data)
-        # relevant_columns = ['COL1', 'COL2', 'VIOLENCIA_FISICA', 'VIOLENCIA_PSICOLOGICA', ...]
-        # if all(col in combined_df.columns for col in relevant_columns):
-        #     combined_df = combined_df[relevant_columns]
-        # else:
-        #     print("Warning: Not all relevant_columns found in the combined dataframe.")
+        print(f"Initial DataFrame shape: {combined_df.shape}")
+        # print(f"Initial DataFrame columns: {combined_df.columns.tolist()}") # Optional: for verbose logging
+
+        # 1. Clean metadata (e.g., cluster text fields like occupation)
+        combined_df = clean_metadata(combined_df)
+        print(f"DataFrame shape after metadata cleaning: {combined_df.shape}")
+        # print(f"DataFrame columns after metadata cleaning: {combined_df.columns.tolist()}") # Optional
+
+        # 2. Preprocess data (further cleaning, feature engineering, type conversions)
+        combined_df = preprocess_data(combined_df)
+        print(f"DataFrame shape after preprocessing: {combined_df.shape}")
+        # print(f"DataFrame columns after preprocessing: {combined_df.columns.tolist()}") # Optional
         
-        # Example: Handle missing values (very basic example)
-        # combined_df.dropna(subset=['TARGET_VARIABLE'], inplace=True) # If you have a specific target
-        # For other columns, you might fill with a placeholder or use more sophisticated imputation
+        print("Final DataFrame types:")
+        print(combined_df.dtypes.to_string()) # Use to_string() for better console output of many dtypes
         
-        # --- End of placeholder ---
-        print("Forma inicial del DataFrame:", combined_df.shape)
+        # Seleccion de características para el análisis
+        combined_df = feature_selection(combined_df)
+        print(f"DataFrame shape after feature selection: {combined_df.shape}")
         
-        #Print types of columns
-        print("Tipos de columnas:")
-        print(combined_df.dtypes)
+        # 3. Plot final categorical unique counts
+        plot_save_path_final = os.path.join(PLOTS_DIR, 'categorical_unique_counts_final.png')
+        plot_categorical_unique_counts(combined_df, top_n=50, save_path=plot_save_path_final)
         
-        columns_to_convert = ['INFORMANTE', 'FORMA_INGRESO', 'LENGUA_MATERNA_VICTIMA','ETNIA_VICTIMA','NIVEL_EDUCATIVO_VICTIMA','OCUPACION_VICTIMA','AGRESOR_EXTRANJERO','VINCULO_PAREJA', 'VINCULO_FAMILIAR','SIN_VINCULO', 'NIVEL_EDUCATIVO_AGRESOR','OCUPACION_AGRESOR','FACTOR_VICTIMA_DISCAPACIDAD','NIVEL_DE_RIESGO_VICTIMA','LUGAR_TENTATIVA_DE_FEMINICIDIO','SITUACION_AGRESOR','TIPO_VIOLENCIA','MODALIDAD_TENTATIVA_DE_FEMINICIDIO','MOVIL_TENTATIVA_DE_FEMINICIDIO','MOVIL_TENTATIVA_DE_FEMINICIDIO','MODALIDADES_VCM','FACTOR_VICTIMA_ABUSO_CONSUMO_ALCOHOL','FACTOR_VICTIMA_CONSUME_DROGAS']
-        for c in columns_to_convert:
-            if c in combined_df.columns: # Check if column exists before trying to convert
-                combined_df[c] = combined_df[c].astype('category')
-            else:
-                print(f"Warning: Column '{c}' not found in DataFrame, skipping conversion.")
-        
-        #Grafico
-        plot_save_path = os.path.join(PLOTS_DIR, 'categorical_unique_counts_initial.png') # Updated path
-        plot_categorical_unique_counts(combined_df, top_n=50, save_path=plot_save_path)
-        
+        # 4. Save the fully processed DataFrame
         output_file_path = os.path.join(OUTPUT_DATA_DIR, 'df_processed.csv')
         try:
             combined_df.to_csv(output_file_path, index=False)
-            print(f"Successfully saved processed data to: {output_file_path}")
+            print(f"Successfully saved fully processed data to: {output_file_path}")
         except Exception as e:
             print(f"Error saving processed data: {e}")
     else:
-        print("No data to save.")
+        print("No data to process or save.")
         
     print("Data preprocessing finished.")
 
