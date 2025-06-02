@@ -218,11 +218,21 @@ def bayesian_inference(model, evidence):
 def ensure_all_categories_present(df, sample):
     # Para cada columna categórica, asegura que todas las categorías estén presentes en la muestra
     for col in df.select_dtypes(include=['category']).columns:
-        categorias_faltantes = set(df[col].cat.categories) - set(sample[col].unique())
-        if categorias_faltantes:
-            for cat in categorias_faltantes:
-                fila = df[df[col] == cat].sample(n=1, random_state=42)
-                sample = pd.concat([sample, fila], ignore_index=True)
+        # Get unique non-NaN categories present in the current sample for this column
+        sample_present_categories = set(sample[col].dropna().unique())
+        
+        # Iterate through all defined categories for the column in the source DataFrame 'df'
+        for cat_to_check in df[col].cat.categories:
+            if cat_to_check not in sample_present_categories:
+                # This category 'cat_to_check' is defined in 'df' and missing from 'sample'
+                potential_rows = df[df[col] == cat_to_check]
+                if not potential_rows.empty:
+                    # If rows with this category exist in 'df', add one to 'sample'
+                    fila = potential_rows.sample(n=1, random_state=42)
+                    sample = pd.concat([sample, fila], ignore_index=True)
+                else:
+                    # This category is defined for df[col] but no instances exist in the source df.
+                    print(f"[WARNING] In ensure_all_categories_present: Category '{cat_to_check}' for column '{col}' is defined in the source DataFrame's categories, but no actual data rows exist for it. Cannot add this category to the sample.")
     return sample
 
 def learn_with_random_forest(train, target_col, val):
