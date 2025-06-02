@@ -623,6 +623,9 @@ def main():
         combined_df = feature_selection(combined_df)
         print(f"DataFrame shape after feature selection: {combined_df.shape}")
         
+        #2. Limpieza de duplicados
+        combined_df = combined_df.drop_duplicates()
+    
         # 3. Plot final categorical unique counts
         plot_save_path_final = os.path.join(PLOTS_DIR, 'categorical_unique_counts_final.png')
         plot_categorical_unique_counts(combined_df, top_n=50, save_path=plot_save_path_final)
