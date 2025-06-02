@@ -3,6 +3,7 @@ import pickle
 import os
 import json
 import time
+from sklearn.model_selection import train_test_split # Added import
 from pgmpy.models import BayesianNetwork, DiscreteBayesianNetwork
 from pgmpy.estimators import HillClimbSearch, MmhcEstimator, PC, GES
 from pgmpy.inference import BeliefPropagation
@@ -14,6 +15,12 @@ import matplotlib.pyplot as plt
 from networkx.drawing.nx_pydot import to_pydot
 import networkx as nx
 from pgmpy.estimators import ExpertKnowledge
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
 
 # --- Preprocesamiento de datos ---
 def preprocess_data(filepath):
@@ -59,6 +66,7 @@ def preprocess_data(filepath):
     df.EDAD_AGRESOR = pd.Categorical(
         df.EDAD_AGRESOR,
         categories=[
+            'INFANCIA',
             'ADOLESCENCIA',
             'JOVEN',
             'ADULTO JOVEN',
@@ -77,12 +85,17 @@ def preprocess_data(filepath):
         categories=['LEVE', 'MODERADO', 'SEVERO'],
         ordered=True
     )
-    # Variables nominales (no ordenadas)
+    df.NIVEL_VIOLENCIA = pd.Categorical(
+        df.NIVEL_DE_RIESGO_VICTIMA,
+        categories=['Bajo', 'Medio', 'Alto'],
+        ordered=True
+    )
+
     nominal_cols = [
         'CONDICION', 'ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA', 'AREA_RESIDENCIA_DOMICILIO',
         'ESTADO_CIVIL_VICTIMA', 'TRABAJA_VICTIMA', 'VINCULO_AGRESOR_VICTIMA',
         'AGRESOR_VIVE_CASA_VICTIMA', 'TRATAMIENTO_VICTIMA', 'SEXO_AGRESOR', 'ESTUDIA',
-        'ESTADO_AGRESOR_U_A', 'ESTADO_AGRESOR_G', 'ESTADO_VICTIMA_U_A', 'ESTADO_VICTIMA_G',
+        'ESTADO_AGRESOR_U_A','TRABAJA_AGRESOR', 'ESTADO_AGRESOR_G', 'ESTADO_VICTIMA_U_A', 'ESTADO_VICTIMA_G',
         'REDES_FAM_SOC', 'SEGURO_VICTIMA', 'VINCULO_AFECTIVO', 'VIOLENCIA_ECONOMICA',
         'VIOLENCIA_PSICOLOGICA', 'VIOLENCIA_SEXUAL', 'VIOLENCIA_FISICA', 'HIJOS_VIVIENTES'
     ]
@@ -212,10 +225,67 @@ def ensure_all_categories_present(df, sample):
                 sample = pd.concat([sample, fila], ignore_index=True)
     return sample
 
+def learn_with_random_forest(train, target_col, val):
+    
+    # Dividir el conjunto de entrenamiento en características (X) y etiquetas (y)
+    X_train = train.drop(columns=[target_col])
+    y_train = train[target_col]
+    X_val = val.drop(columns=[target_col])
+    y_val = val[target_col]
+    print(f"Forma de X_train: {X_train.shape}, y_train: {y_train.shape}")
+    print(f"Forma de X_val: {X_val.shape}, y_val: {y_val.shape}")
+    
+    rf_model = RandomForestClassifier(random_state = 42)
+
+    rf_model.fit(X_train, y_train)
+
+    accuracy_rf = accuracy_score(y_val, rf_model.predict(X_val))
+    print(f"Precisión del modelo Random Forest: {accuracy_rf}")
+
+    conf_matrix = confusion_matrix(y_val, rf_model.predict(X_val))
+    print(f'Matriz de Confusión:\n{conf_matrix}')
+
+    # Visualizamos la matriz de confusión con seaborn
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues')
+    plt.title('Matriz de Confusión')
+    plt.xlabel('Predicción')
+    plt.ylabel('Real')
+    plt.show()
+
+    # Reporte de clasificación
+    class_report = classification_report(y_val, rf_model.predict(X_val))
+    print(f'Classification Report:\n{class_report}')
+    
+    # Guarda el reporte de clasificación en un archivo
+    report_file_path = os.path.join('./uploads', 'classification_report_rf.txt')
+    with open(report_file_path, 'w') as f:
+        f.write(class_report)
+    print(f"Reporte de clasificación guardado en: {report_file_path}")
+    
+    return rf_model
+
 def main():
     
     filepath = 'data/df_processed.csv'
     df_encoded, df, dict = preprocess_data(filepath)
+
+    # Split data into training and validation sets
+    indices = df.index
+    if len(indices) <= 1000:
+        raise ValueError("Dataset too small to create a validation set of 1000 records.")
+    
+    train_indices, val_indices = train_test_split(indices, test_size=1000, random_state=42, shuffle=True)
+    train_df_encoded = df_encoded.loc[train_indices].reset_index(drop=True)
+    val_df_encoded = df_encoded.loc[val_indices].reset_index(drop=True) 
+
+    train_df = df.loc[train_indices].reset_index(drop=True)
+    val_df = df.loc[val_indices].reset_index(drop=True) # To be used for validation later
+
+    print(f"Original dataset size: {len(df_encoded)}")
+    print(f"Training set size: {len(train_df_encoded)}")
+    print(f"Validation set size: {len(val_df_encoded)}")
+
     # algorithms_to_experiment = [
     #     ('hill_climb', 'bic'),
     #     ('hill_climb', 'k2'),
@@ -233,19 +303,25 @@ def main():
         ('GES', 'bic-cg')
 	    #('mmhc', 'bdeu')
     ]
-    sample_sizes = [40000, 50000, 70000]
+    sample_sizes = [40000, 50000]  # Sample sizes to experiment wit
     results = []
     trained_models = {}
     expert_knowledge = {
         'forbidden_edges': [],
-        'required_edges': [('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')]
+        'required_edges': [('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')]
     }
     for sample_size in sample_sizes:
-        sample_data_encoded = df_encoded.sample(n=sample_size, random_state=42).reset_index(drop=True)
-        sample_data = df.sample(n=sample_size, random_state=42).reset_index(drop=True)
-        # Asegura que todas las categorías estén presentes en la muestra
-        sample_data = ensure_all_categories_present(df, sample_data)
-        sample_data_encoded = ensure_all_categories_present(df_encoded, sample_data_encoded)
+        # Ensure sample_size is not greater than the training set size
+        if sample_size > len(train_df_encoded):
+            print(f"[WARNING] Sample size {sample_size} is larger than training set size {len(train_df_encoded)}. Skipping this sample size.")
+            continue
+            
+        sample_data_encoded = train_df_encoded.sample(n=sample_size, random_state=42).reset_index(drop=True)
+        sample_data = train_df.sample(n=sample_size, random_state=42).reset_index(drop=True)
+        
+        # Asegura que todas las categorías estén presentes en la muestra, referencing the training set
+        sample_data = ensure_all_categories_present(train_df, sample_data)
+        sample_data_encoded = ensure_all_categories_present(train_df_encoded, sample_data_encoded)
         
         for algorithm, score_method in algorithms_to_experiment:
             if algorithm == 'hill_climb' or algorithm == 'pc':
@@ -263,11 +339,10 @@ def main():
             if algorithm == 'pc':
                 expert_knowledge = ExpertKnowledge(
                     required_edges=[
-                        ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')
+                        ('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')
                     ],
                     forbidden_edges=[
-                        ('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA'),
-                        ('VIOLENCIA_SEXUAL', 'VIOLENCIA_PSICOLOGICA')
+                        ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')
                     ]
                 )
                 enforce_expert_knowledge = True
@@ -277,12 +352,13 @@ def main():
                 df_to_sl,
                 algorithm=algorithm,
                 scoring_method=score_method,
-                output_path=f'./models/model_structure_29_{algorithm}_{score_method if algorithm == "hill_climb" else "BDeu"}_{sample_size}.pkl',
+                output_path=f'./models/model_structure_31_{algorithm}_{score_method}_{sample_size}.pkl',
                 expert_knowledge=expert_knowledge,
                 enforce_expert_knowledge=enforce_expert_knowledge
             )
             model_variables = set(var for edge in model.edges() for var in edge)
-            df_filtered = df_encoded[list(model_variables)] #Por revisar que df elegir codificado o no
+            # Use train_df_encoded for calculating structure score
+            df_filtered = train_df_encoded[list(model_variables)] 
             score = structure_score(model, df_filtered, scoring_method="bdeu")
             print("Calidad de red BDeue:", score)
             elapsed_time = time.time() - start_time
@@ -314,6 +390,8 @@ def main():
         pickle.dump(best_model, f)
     print(f"\nEl mejor modelo ha sido guardado en: {filename}")
     
+    
+
     # Guardar los mapeos (dict)
     dict_file_path = os.path.join('./uploads', 'categorical_mappings.json')
     with open(dict_file_path, 'w', encoding='utf-8') as f:
@@ -332,17 +410,39 @@ def main():
     except Exception as e:
         print(f'No se pudo guardar la imagen del modelo: {e}')
     
-    # Aprendizaje de parámetros
-    model = parameter_learning(best_model, df_encoded)
+    # Aprendizaje de parámetros usando el training set
+    model_rb = parameter_learning(best_model, train_df_encoded)
+    
+    #Experimento 2: Aprendiendo con Random Forest
+    model_rf = learn_with_random_forest(train_df_encoded, 'NIVEL_DE_RIESGO_VICTIMA', val_df_encoded)
+    
+    #Evaluando modelo Random Forest
+    
+    
+    #Evaluando modelo con Red Bayesiana
+    print("\nEvaluando el modelo con Red Bayesiana...")
+    
+    #Markov
+    target_variable = 'NIVEL_DE_RIESGO_VICTIMA'
+    markov_blanket = best_model.get_markov_blanket(target_variable)
+    print(f"Markov Blanket de '{target_variable}':", markov_blanket)
+    
     
     # Inferencia exacta
-    evidence = {
-        'VINCULO_AGRESOR_VICTIMA': 1,
-        'ESTUDIA': 1,
-        'NIVEL_EDUCATIVO_VICTIMA': 2,
-        'AREA_RESIDENCIA_DOMICILIO': 1
-    }
-    #bayesian_inference(model, evidence)
+    
+    #Las evidencias son val_df_encoded, extrae solo las columnas que se obtienen en markov_blanket
+    evidence = val_df_encoded[markov_blanket].iloc[0].to_dict()
+    print("Evidencia para la inferencia:", evidence)
+    
+    
+    # evidence = {
+    #     'VINCULO_AGRESOR_VICTIMA': 1,
+    #     'ESTUDIA': 1,
+    #     'NIVEL_EDUCATIVO_VICTIMA': 2,
+    #     'AREA_RESIDENCIA_DOMICILIO': 1
+    # }
+    
+    #bayesian_inference(model_rb, evidence)
 
 if __name__ == "__main__":
     main()
