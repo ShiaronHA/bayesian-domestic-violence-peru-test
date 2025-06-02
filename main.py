@@ -144,12 +144,18 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
     elif algorithm == 'pc':
         print(f"\nAprendiendo con PC...")
         if scoring_method == 'pillai':
-            df = validate_numeric_encoding(df)
+            assert not df.isnull().values.any(), "DataFrame contains NaN values"
+            assert np.isfinite(df.to_numpy()).all(), "DataFrame contains inf values"
+            # Validación: si hay columnas con baja varianza, eliminarlas
+            low_variance_cols = [col for col in df.columns if df[col].nunique() <= 1]
+            print(f"Low-variance columns: {low_variance_cols}")
+            #df = validate_numeric_encoding(df)
             est = PC(df)
             # --- Expert knowledge for PC ---
             model = est.estimate(
                 ci_test='pillai',
                 max_cond_vars=5,
+                n_jobs=1,
                 expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
                 enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
             )
