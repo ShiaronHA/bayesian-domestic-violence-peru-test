@@ -252,6 +252,11 @@ def learn_with_random_forest(train, target_col, val):
     plt.xlabel('Predicción')
     plt.ylabel('Real')
     plt.show()
+    
+    #Guardar el grafico de la matriz de confusión
+    conf_matrix_file_path = os.path.join('./plots', 'confusion_matrix_rf.png')
+    plt.savefig(conf_matrix_file_path)
+    print(f"Matriz de confusión guardada en: {conf_matrix_file_path}")
 
     # Reporte de clasificación
     class_report = classification_report(y_val, rf_model.predict(X_val))
@@ -269,22 +274,28 @@ def main():
     
     filepath = 'data/df_processed.csv'
     df_encoded, df, dict = preprocess_data(filepath)
-
-    # Split data into training and validation sets
-    indices = df.index
-    if len(indices) <= 1000:
-        raise ValueError("Dataset too small to create a validation set of 1000 records.")
     
-    train_indices, val_indices = train_test_split(indices, test_size=1000, random_state=42, shuffle=True)
-    train_df_encoded = df_encoded.loc[train_indices].reset_index(drop=True)
-    val_df_encoded = df_encoded.loc[val_indices].reset_index(drop=True) 
-
-    train_df = df.loc[train_indices].reset_index(drop=True)
-    val_df = df.loc[val_indices].reset_index(drop=True) # To be used for validation later
-
-    print(f"Original dataset size: {len(df_encoded)}")
-    print(f"Training set size: {len(train_df_encoded)}")
-    print(f"Validation set size: {len(val_df_encoded)}")
+    sample_train_size = len(df_encoded) - 1000
+    train_data_encoded = df_encoded.sample(n=sample_train_size, random_state=42).reset_index(drop=True)
+    train_data = df.sample(n=sample_train_size, random_state=42).reset_index(drop=True)
+    
+    # Asegura que todas las categorías estén presentes en la muestra, referencing the training set
+    train_df = ensure_all_categories_present(df, train_data)
+    train_df_encoded = ensure_all_categories_present(df_encoded, train_data_encoded)
+    
+    print("Forma del DataFrame de entrenamiento:", train_data_encoded.shape)
+    
+    #Guardar los 1000 registros restantes como conjunto de validación
+    val_df_encoded = df_encoded.drop(train_df_encoded.index).reset_index(drop=True)
+    val_df = df.drop(train_df.index).reset_index(drop=True)
+    print("Forma del DataFrame de validación:", val_df_encoded.shape)
+    
+    # Guardar los DataFrames de entrenamiento y validación
+    
+    train_df_encoded.to_csv('./data/train_df_encoded.csv', index=False)
+    train_df.to_csv('./data/train_df.csv', index=False)
+    val_df_encoded.to_csv('./data/val_df_encoded.csv', index=False)
+    val_df.to_csv('./data/val_df.csv', index=False)
 
     # algorithms_to_experiment = [
     #     ('hill_climb', 'bic'),
