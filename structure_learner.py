@@ -154,13 +154,11 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                 # Validación: si hay columnas con baja varianza, eliminarlas
                 low_variance_cols = [col for col in df.columns if df[col].nunique() <= 1]
                 print(f"Low-variance columns: {low_variance_cols}")
-                #df = validate_numeric_encoding(df)
                 est = PC(df)
                 # --- Expert knowledge for PC ---
                 model = est.estimate(
                     ci_test='pillai',
                     max_cond_vars=5,
-                    #n_jobs=1,
                     expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
                     enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
                 )
@@ -171,7 +169,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                     ci_test='chi_square',
                     return_type='pdag',
                     significance_level=0.01,
-                    max_cond_vars=5,
+                    max_cond_vars=3,
                     expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
                     enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False,
                     n_jobs=-1,
@@ -240,21 +238,15 @@ def main():
     val_encoded.to_csv('./data/val_encoded.csv', index=False)
     val_df.to_csv('./data/val_df.csv', index=False)
 
-    # algorithms_to_experiment = [
-    #     ('hill_climb', 'bic'),
-    #     ('hill_climb', 'k2'),
-    #     ('hill_climb', 'bdeu'),
-    #     ('pc', 'bdeu'),
-    #     ('mmhc', 'bic'),
-    #     ('mmhc', 'bdeu')
-    # ]
     algorithms_to_experiment = [
         ('hill_climb', 'bic-d'), 
+        #('hill_climb', 'k2'),
         ('hill_climb', 'bdeu'),
         ('pc', 'pillai'),
         ('pc', 'chi_square'),
 	    ('GES','bic-d'),
         ('GES', 'bic-cg')
+        #('mmhc', 'bic'),
 	    #('mmhc', 'bdeu')
     ]
     sample_sizes = [20000, 40000, 50000]  # Sample sizes to experiment wit
