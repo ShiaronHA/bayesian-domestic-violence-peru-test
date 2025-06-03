@@ -22,6 +22,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
+# Usara el mejor modelo aprendido para inferencia
+# Y usara el train y val para aprender los parametros del modelo
+
 # --- Preprocesamiento de datos ---
 def preprocess_data(filepath):
     df = pd.read_csv(filepath, delimiter=',')
@@ -86,7 +89,7 @@ def preprocess_data(filepath):
         ordered=True
     )
     df.NIVEL_VIOLENCIA = pd.Categorical(
-        df.NIVEL_DE_RIESGO_VICTIMA,
+        df.NIVEL_VIOLENCIA,
         categories=['Bajo', 'Medio', 'Alto'],
         ordered=True
     )
