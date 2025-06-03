@@ -279,7 +279,7 @@ def main():
         sample_data_encoded = train_encoded.loc[sample_indices].reset_index(drop=True)
 
         for algorithm, score_method in algorithms_to_experiment:
-            if algorithm == 'hill_climb' or algorithm == 'pc':
+            if algorithm == 'hill_climb': #or algorithm == 'pc' 
                 df_to_sl=sample_data_encoded
             else:
                 df_to_sl=sample_data
@@ -344,7 +344,6 @@ def main():
     with open(filename, 'wb') as f:
         pickle.dump(best_model, f)
     print(f"\nEl mejor modelo ha sido guardado en: {filename}")
-    
     
 
     # Guardar los mapeos (dict)
