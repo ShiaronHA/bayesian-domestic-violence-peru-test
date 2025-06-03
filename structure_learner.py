@@ -279,7 +279,7 @@ def main():
         sample_data_encoded = train_encoded.loc[sample_indices].reset_index(drop=True)
 
         for algorithm, score_method in algorithms_to_experiment:
-            if algorithm == 'hill_climb':
+            if algorithm == 'hill_climb' or algorithm == 'pc':
                 df_to_sl=sample_data_encoded
             else:
                 df_to_sl=sample_data
@@ -296,9 +296,9 @@ def main():
                     required_edges=[
                         ('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')
                     ],
-                    forbidden_edges=[
-                        ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')
-                    ]
+                    # forbidden_edges=[
+                    #     ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')
+                    # ]
                 )
                 enforce_expert_knowledge = True
             print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
