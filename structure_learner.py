@@ -83,8 +83,8 @@ def preprocess_data(filepath):
             categories=['LEVE', 'MODERADO', 'SEVERO'],
             ordered=True
         )
-        df.NIVEL_VIOLENCIA = pd.Categorical(
-            df.NIVEL_VIOLENCIA,
+        df.NIVEL_VIOLENCIA_DISTRITO = pd.Categorical(
+            df.NIVEL_VIOLENCIA_DISTRITO,
             categories=['Bajo', 'Medio', 'Alto'],
             ordered=True
         )
@@ -160,7 +160,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                 model = est.estimate(
                     ci_test='pillai',
                     max_cond_vars=5,
-                    n_jobs=1,
+                    #n_jobs=1,
                     expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
                     enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
                 )
@@ -252,12 +252,12 @@ def main():
         ('hill_climb', 'bic-d'), 
         ('hill_climb', 'bdeu'),
         ('pc', 'pillai'),
-        #('pc', 'chi_square'),
+        ('pc', 'chi_square'),
 	    ('GES','bic-d'),
         ('GES', 'bic-cg')
 	    #('mmhc', 'bdeu')
     ]
-    sample_sizes = [40000, 50000]  # Sample sizes to experiment wit
+    sample_sizes = [20000, 40000, 50000]  # Sample sizes to experiment wit
     results = []
     trained_models = {}
     expert_knowledge = {

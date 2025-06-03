@@ -358,10 +358,10 @@ def calculate_and_classify_violence_level(df, input_data_dir):
         elif ratio < 0.02: return 'Medio'
         else: return 'Alto'
         
-    df_merge['NIVEL_VIOLENCIA'] = df_merge['ratio_violencia'].apply(clasificar_violencia)
-    df_merge['NIVEL_VIOLENCIA'] = df_merge['NIVEL_VIOLENCIA'].astype('category')
+    df_merge['NIVEL_VIOLENCIA_DISTRITO'] = df_merge['ratio_violencia'].apply(clasificar_violencia)
+    df_merge['NIVEL_VIOLENCIA_DISTRITO'] = df_merge['NIVEL_VIOLENCIA_DISTRITO'].astype('category')
     
-    df_copy = pd.merge(df_copy, df_merge[['UBIGEO', 'NIVEL_VIOLENCIA']], on='UBIGEO', how='left')
+    df_copy = pd.merge(df_copy, df_merge[['UBIGEO', 'NIVEL_VIOLENCIA_DISTRITO']], on='UBIGEO', how='left')
     df_copy = df_copy.drop(columns=geo_cols + ['UBIGEO'], errors='ignore')
     return df_copy
 

@@ -88,8 +88,8 @@ def preprocess_data(filepath):
         categories=['LEVE', 'MODERADO', 'SEVERO'],
         ordered=True
     )
-    df.NIVEL_VIOLENCIA = pd.Categorical(
-        df.NIVEL_VIOLENCIA,
+    df.NIVEL_VIOLENCIA_DISTRITO = pd.Categorical(
+        df.NIVEL_VIOLENCIA_DISTRITO,
         categories=['Bajo', 'Medio', 'Alto'],
         ordered=True
     )
