@@ -295,10 +295,10 @@ def main():
                 expert_knowledge = ExpertKnowledge(
                     required_edges=[
                         ('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')
+                    ],
+                    forbidden_edges=[
+                        ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')
                     ]
-                    # forbidden_edges=[
-                    #     ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')
-                    # ]
                 )
                 enforce_expert_knowledge = True
             print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
