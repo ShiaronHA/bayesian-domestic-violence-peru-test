@@ -753,7 +753,7 @@ def main():
             print(f"Error saving processed data: {e}")
             
         # 5. Asignar dtypes a las columnas categóricas
-        filepath = 'data/df_full_processed.csv'
+        filepath = 'datasets/df_full_processed.csv'
         df_encoded, df, code_to_category_map, dtype_definitions = assign_dtypes(filepath)
         # 6. Dividir el DataFrame en dos partes: una para el análisis y otra para la predicción
         
