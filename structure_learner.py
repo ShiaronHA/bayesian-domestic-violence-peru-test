@@ -15,111 +15,13 @@ from pgmpy.estimators import ExpertKnowledge
 import pandas as pd
 from pgmpy.metrics import structure_score
 import numpy as np
+from datetime import datetime
 
 # Aprender mejor estructura de un modelo bayesiano a partir de un DataFrame
 # Comparar modelos con 3 tamaños de muestra diferentes.
 # Usará solo el train...
 
 
-def preprocess_data(filepath):
-        df = pd.read_csv(filepath, delimiter=',')
-        print("Forma inicial del DataFrame:", df.shape)
-        df = df.dropna()
-        # Categorización explícita de variables ordinales
-        df.NIVEL_EDUCATIVO_VICTIMA = pd.Categorical(df.NIVEL_EDUCATIVO_VICTIMA,
-            categories=[
-                'SIN NIVEL/INICIAL/BASICA ESPECIAL',
-                'PRIMARIA INCOMPLETA',
-                'PRIMARIA COMPLETA',
-                'SECUNDARIA INCOMPLETA',
-                'SECUNDARIA COMPLETA',
-                'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
-                'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
-                'MAESTRIA / DOCTORADO'],
-            ordered=True)
-        df.NIVEL_EDUCATIVO_AGRESOR = pd.Categorical(df.NIVEL_EDUCATIVO_AGRESOR,
-            categories=[
-                'SIN NIVEL/INICIAL/BASICA ESPECIAL',
-                'PRIMARIA INCOMPLETA',
-                'PRIMARIA COMPLETA',
-                'SECUNDARIA INCOMPLETA',
-                'SECUNDARIA COMPLETA',
-                'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
-                'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
-                'MAESTRIA / DOCTORADO'],
-            ordered=True)
-        df.EDAD_VICTIMA = pd.Categorical(
-            df.EDAD_VICTIMA,
-            categories=[
-                'PRIMERA INFANCIA',
-                'INFANCIA',
-                'ADOLESCENCIA',
-                'JOVEN',
-                'ADULTO JOVEN',
-                'ADULTO',
-                'ADULTO MAYOR'
-            ],
-            ordered=True
-        )
-        df.EDAD_AGRESOR = pd.Categorical(
-            df.EDAD_AGRESOR,
-            categories=[
-                'INFANCIA',
-                'ADOLESCENCIA',
-                'JOVEN',
-                'ADULTO JOVEN',
-                'ADULTO',
-                'ADULTO MAYOR'
-            ],
-            ordered=True
-        )
-        df.FRECUENCIA_AGREDE = pd.Categorical(
-            df.FRECUENCIA_AGREDE,
-            categories=['MENSUAL', 'QUINCENAL', 'SEMANAL', 'INTERMITENTE', 'DIARIO'],
-            ordered=True
-        )
-        df.NIVEL_DE_RIESGO_VICTIMA = pd.Categorical(
-            df.NIVEL_DE_RIESGO_VICTIMA,
-            categories=['LEVE', 'MODERADO', 'SEVERO'],
-            ordered=True
-        )
-        df.NIVEL_VIOLENCIA_DISTRITO = pd.Categorical(
-            df.NIVEL_VIOLENCIA_DISTRITO,
-            categories=['Bajo', 'Medio', 'Alto'],
-            ordered=True
-        )
-
-        nominal_cols = [
-            'CONDICION', 'ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA', 'AREA_RESIDENCIA_DOMICILIO',
-            'ESTADO_CIVIL_VICTIMA', 'TRABAJA_VICTIMA', 'VINCULO_AGRESOR_VICTIMA',
-            'AGRESOR_VIVE_CASA_VICTIMA', 'TRATAMIENTO_VICTIMA', 'SEXO_AGRESOR', 'ESTUDIA',
-            'ESTADO_AGRESOR_U_A','TRABAJA_AGRESOR', 'ESTADO_AGRESOR_G', 'ESTADO_VICTIMA_U_A', 'ESTADO_VICTIMA_G',
-            'REDES_FAM_SOC', 'SEGURO_VICTIMA', 'VINCULO_AFECTIVO', 'VIOLENCIA_ECONOMICA',
-            'VIOLENCIA_PSICOLOGICA', 'VIOLENCIA_SEXUAL', 'VIOLENCIA_FISICA', 'HIJOS_VIVIENTES'
-        ]
-        
-        for col in nominal_cols:
-            df[col] = pd.Categorical(df[col], ordered=False)
-            
-        # Convertir variables categóricas a códigos numéricos
-        df_encoded = df.apply(lambda col: col.cat.codes if col.dtype.name == 'category' else col)
-        
-        code_to_category_map = {
-            col: dict(enumerate(df[col].cat.categories))
-            for col in df.select_dtypes(['category']).columns
-        }
-
-        dtype_definitions = {}
-        for col_name in df.select_dtypes(['category']).columns:
-            cat_dtype = df[col_name].dtype
-            if isinstance(cat_dtype, pd.CategoricalDtype):
-                dtype_definitions[col_name] = {
-                    'categories': list(cat_dtype.categories),
-                    'ordered': cat_dtype.ordered
-                }
-        return df_encoded, df, code_to_category_map, dtype_definitions
-    
-    # --- Main para experimentos completos ---
 
 def collect_all_categories(df):
     """
@@ -207,46 +109,20 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         return bn_model
 
 def main():
+     
+            
+    # 1. Leemos los DataFrames de entrenamiento y validación
+    train_encoded = pd.read_csv('./datasets/train_df_encoded.csv')
+    train_df = pd.read_csv('./datasets/train_df.csv')
+    val_encoded = pd.read_csv('./datasets/val_df_encoded.csv')
+    val_df = pd.read_csv('./datasets/val_df.csv')
+    print("DataFrames cargados correctamente.")
     
-    filepath = 'data/df_processed.csv'
-    df_encoded, df, code_to_category_map, dtype_definitions = preprocess_data(filepath)
-    total_size = len(df)
-
-    # Paso 1: recolectar todas las categorías mínimas necesarias
-    df_minimum = collect_all_categories(df)
-    min_indices = set(df_minimum['index'])  # guardamos los índices usados
-    df_minimum = df_minimum.set_index('index')
-
-    # Paso 2: determinar cuántas filas más se necesitan para completar el train
-    target_train_size = total_size - 1000
-    n_missing = target_train_size - len(df_minimum)
-
-    # Paso 3: muestreo aleatorio de filas adicionales, sin repetir las usadas
-    df_remaining = df.drop(index=min_indices)
-    df_extra = df_remaining.sample(n=n_missing, random_state=42)
-
-    # Paso 4: formar el set de entrenamiento completo
-    train_df = pd.concat([df_minimum, df_extra])
-    train_indices = train_df.index
-
-    # Paso 5: obtener el set codificado para el train
-    train_encoded = df_encoded.loc[train_indices].reset_index(drop=True)
-    train_df = train_df.reset_index(drop=True)
-
-    # Paso 6: validation = el resto
-    all_indices = set(range(total_size))
-    valid_indices = list(all_indices - set(train_indices))
-    val_df = df.loc[valid_indices].reset_index(drop=True)
-    val_encoded = df_encoded.loc[valid_indices].reset_index(drop=True)
-
-    print("Train shape:", train_encoded.shape)
-    print("Validation shape:", val_encoded.shape)
-    
-    # Guardar los DataFrames de entrenamiento y validación
-    train_encoded.to_csv('./data/train_encoded.csv', index=False)
-    train_df.to_csv('./data/train_df.csv', index=False)
-    val_encoded.to_csv('./data/val_encoded.csv', index=False)
-    val_df.to_csv('./data/val_df.csv', index=False)
+    # --- Cargar dtype_definitions y re-aplicar a train_df ---
+    dtype_definitions_path = './uploads/dtype_definitions.json'
+    if os.path.exists(dtype_definitions_path):
+        with open(dtype_definitions_path, 'r', encoding='utf-8') as f:
+            dtype_definitions = json.load(f)
 
     algorithms_to_experiment = [
         ('hill_climb', 'bic-d'), 
@@ -355,31 +231,23 @@ def main():
     
     print("\nTabla comparativa de resultados:")
     print(results_structure_learning.to_string(index=False))
-    comparison_file_path = os.path.join('./uploads', 'resultados.csv')
+    comparison_file_path = os.path.join('./results', 'resultados_rb_classic.csv')
     results_structure_learning.to_csv(comparison_file_path, index=False)
     print(f"Resultados guardados en: {comparison_file_path}")
     best_row = results_structure_learning.sort_values(by='BDeu_Score', ascending=False).iloc[0]
     best_model_key = f"{best_row['Algorithm']}_{best_row['Score_method']}_{int(best_row['Sample_Size'])}"
     best_score = best_row['BDeu_Score']
     best_model = trained_models[best_model_key]
-    filename = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges{len(best_model.edges())}.pkl"
+    
+    # Obtener fecha y hora actual para el nombre del archivo
+    now = datetime.now()
+    timestamp_str = now.strftime("%Y%m%d_%H%M%S")
+    
+    filename = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges_{len(best_model.edges())}_{timestamp_str}.pkl"
     with open(filename, 'wb') as f:
         pickle.dump(best_model, f)
     print(f"\nEl mejor modelo ha sido guardado en: {filename}")
     
-    
-
-    # Guardar los mapeos de códigos de categorías (anteriormente 'dict')
-    dict_file_path = os.path.join('./uploads', 'categorical_mappings.json')
-    with open(dict_file_path, 'w', encoding='utf-8') as f:
-        json.dump(code_to_category_map, f, indent=4, ensure_ascii=False)
-    print(f"Mapeos de códigos de categorías guardados en: {dict_file_path}")
-
-    # Guardar las definiciones de dtype
-    dtype_definitions_path = os.path.join('./uploads', 'dtype_definitions.json')
-    with open(dtype_definitions_path, 'w', encoding='utf-8') as f:
-        json.dump(dtype_definitions, f, indent=4, ensure_ascii=False)
-    print(f"Definiciones de Dtype guardadas en: {dtype_definitions_path}")
     
     # Guardar imagen del best_model en la carpeta dag
     try:

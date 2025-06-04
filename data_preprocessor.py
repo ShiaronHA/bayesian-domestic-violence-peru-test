@@ -7,11 +7,12 @@ import unicodedata
 import seaborn as sns
 from sentence_transformers import SentenceTransformer
 from scipy.cluster.hierarchy import linkage, fcluster
+import json
 
 # Define the input and output paths based on the project structure
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DATA_DIR = os.path.join(BASE_DIR, 'data', 'input_data')
-OUTPUT_DATA_DIR = os.path.join(BASE_DIR, 'data')
+OUTPUT_DATA_DIR = os.path.join(BASE_DIR, 'datasets')
 PLOTS_DIR = os.path.join(BASE_DIR, 'plots') 
 
 # List of data files to process
@@ -590,7 +591,117 @@ def feature_selection(df):
     return df_select
 
 
+def assign_dtypes(df):
+    
+        print("Forma inicial del DataFrame:", df.shape)
+        df = df.dropna()
+        # Categorización explícita de variables ordinales
+        df.NIVEL_EDUCATIVO_VICTIMA = pd.Categorical(df.NIVEL_EDUCATIVO_VICTIMA,
+            categories=[
+                'SIN NIVEL/INICIAL/BASICA ESPECIAL',
+                'PRIMARIA INCOMPLETA',
+                'PRIMARIA COMPLETA',
+                'SECUNDARIA INCOMPLETA',
+                'SECUNDARIA COMPLETA',
+                'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
+                'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
+                'MAESTRIA / DOCTORADO'],
+            ordered=True)
+        df.NIVEL_EDUCATIVO_AGRESOR = pd.Categorical(df.NIVEL_EDUCATIVO_AGRESOR,
+            categories=[
+                'SIN NIVEL/INICIAL/BASICA ESPECIAL',
+                'PRIMARIA INCOMPLETA',
+                'PRIMARIA COMPLETA',
+                'SECUNDARIA INCOMPLETA',
+                'SECUNDARIA COMPLETA',
+                'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
+                'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
+                'MAESTRIA / DOCTORADO'],
+            ordered=True)
+        df.EDAD_VICTIMA = pd.Categorical(
+            df.EDAD_VICTIMA,
+            categories=[
+                'PRIMERA INFANCIA',
+                'INFANCIA',
+                'ADOLESCENCIA',
+                'JOVEN',
+                'ADULTO JOVEN',
+                'ADULTO',
+                'ADULTO MAYOR'
+            ],
+            ordered=True
+        )
+        df.EDAD_AGRESOR = pd.Categorical(
+            df.EDAD_AGRESOR,
+            categories=[
+                'INFANCIA',
+                'ADOLESCENCIA',
+                'JOVEN',
+                'ADULTO JOVEN',
+                'ADULTO',
+                'ADULTO MAYOR'
+            ],
+            ordered=True
+        )
+        df.FRECUENCIA_AGREDE = pd.Categorical(
+            df.FRECUENCIA_AGREDE,
+            categories=['MENSUAL', 'QUINCENAL', 'SEMANAL', 'INTERMITENTE', 'DIARIO'],
+            ordered=True
+        )
+        df.NIVEL_DE_RIESGO_VICTIMA = pd.Categorical(
+            df.NIVEL_DE_RIESGO_VICTIMA,
+            categories=['LEVE', 'MODERADO', 'SEVERO'],
+            ordered=True
+        )
+        df.NIVEL_VIOLENCIA_DISTRITO = pd.Categorical(
+            df.NIVEL_VIOLENCIA_DISTRITO,
+            categories=['Bajo', 'Medio', 'Alto'],
+            ordered=True
+        )
 
+        nominal_cols = [
+            'CONDICION', 'ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA', 'AREA_RESIDENCIA_DOMICILIO',
+            'ESTADO_CIVIL_VICTIMA', 'TRABAJA_VICTIMA', 'VINCULO_AGRESOR_VICTIMA',
+            'AGRESOR_VIVE_CASA_VICTIMA', 'TRATAMIENTO_VICTIMA', 'SEXO_AGRESOR', 'ESTUDIA',
+            'ESTADO_AGRESOR_U_A','TRABAJA_AGRESOR', 'ESTADO_AGRESOR_G', 'ESTADO_VICTIMA_U_A', 'ESTADO_VICTIMA_G',
+            'REDES_FAM_SOC', 'SEGURO_VICTIMA', 'VINCULO_AFECTIVO', 'VIOLENCIA_ECONOMICA',
+            'VIOLENCIA_PSICOLOGICA', 'VIOLENCIA_SEXUAL', 'VIOLENCIA_FISICA', 'HIJOS_VIVIENTES'
+        ]
+        
+        for col in nominal_cols:
+            df[col] = pd.Categorical(df[col], ordered=False)
+            
+        # Convertir variables categóricas a códigos numéricos
+        df_encoded = df.apply(lambda col: col.cat.codes if col.dtype.name == 'category' else col)
+        
+        code_to_category_map = {
+            col: dict(enumerate(df[col].cat.categories))
+            for col in df.select_dtypes(['category']).columns
+        }
+
+        dtype_definitions = {}
+        for col_name in df.select_dtypes(['category']).columns:
+            cat_dtype = df[col_name].dtype
+            if isinstance(cat_dtype, pd.CategoricalDtype):
+                dtype_definitions[col_name] = {
+                    'categories': list(cat_dtype.categories),
+                    'ordered': cat_dtype.ordered
+                }
+        return df_encoded, df, code_to_category_map, dtype_definitions
+    
+def collect_all_categories(df):
+    """
+    Devuelve un DataFrame con al menos una fila por cada categoría en cada columna categórica.
+    """
+    rows = []
+
+    for col in df.select_dtypes(include=['category']).columns:
+        for cat in df[col].cat.categories:
+            row = df[df[col] == cat].sample(n=1, random_state=42)
+            rows.append(row)
+
+    return pd.concat(rows).drop_duplicates().reset_index()
+    
 def main():
     """Main function to run the data preprocessing pipeline."""
     print("Starting data preprocessing...")
@@ -634,12 +745,68 @@ def main():
         plot_categorical_unique_counts(combined_df, top_n=50, save_path=plot_save_path_final)
         
         # 4. Save the fully processed DataFrame
-        output_file_path = os.path.join(OUTPUT_DATA_DIR, 'df_processed.csv')
+        output_file_path = os.path.join(OUTPUT_DATA_DIR, 'df_full_processed.csv')
         try:
             combined_df.to_csv(output_file_path, index=False)
             print(f"Successfully saved fully processed data to: {output_file_path}")
         except Exception as e:
             print(f"Error saving processed data: {e}")
+            
+        # 5. Asignar dtypes a las columnas categóricas
+        df_encoded, df, code_to_category_map, dtype_definitions = assign_dtypes(combined_df)
+        # 6. Dividir el DataFrame en dos partes: una para el análisis y otra para la predicción
+        
+        # Paso 0: cargar los datos
+        total_size = len(df)
+
+        # Paso 1: recolectar todas las categorías mínimas necesarias
+        df_minimum = collect_all_categories(df)
+        min_indices = set(df_minimum['index'])  # guardamos los índices usados
+        df_minimum = df_minimum.set_index('index')
+
+        # Paso 2: determinar cuántas filas más se necesitan para completar el train
+        target_train_size = total_size - 1000
+        n_missing = target_train_size - len(df_minimum)
+
+        # Paso 3: muestreo aleatorio de filas adicionales, sin repetir las usadas
+        df_remaining = df.drop(index=min_indices)
+        df_extra = df_remaining.sample(n=n_missing, random_state=42)
+
+        # Paso 4: formar el set de entrenamiento completo
+        train_df = pd.concat([df_minimum, df_extra])
+        train_indices = train_df.index
+
+        # Paso 5: obtener el set codificado para el train
+        train_encoded = df_encoded.loc[train_indices].reset_index(drop=True)
+        train_df = train_df.reset_index(drop=True)
+
+        # Paso 6: validation = el resto
+        all_indices = set(range(total_size))
+        valid_indices = list(all_indices - set(train_indices))
+        val_df = df.loc[valid_indices].reset_index(drop=True)
+        val_encoded = df_encoded.loc[valid_indices].reset_index(drop=True)
+
+        print("Train shape:", train_encoded.shape)
+        print("Validation shape:", val_encoded.shape)
+        
+        # Guardar los DataFrames de entrenamiento y validación
+        train_encoded.to_csv('./datasets/train_encoded.csv', index=False)
+        train_df.to_csv('./datasets/train_df.csv', index=False)
+        val_encoded.to_csv('./datasets/val_encoded.csv', index=False)
+        val_df.to_csv('./datasets/val_df.csv', index=False)
+        
+        # Guardar los mapeos de códigos de categorías (anteriormente 'dict')
+        dict_file_path = os.path.join('./uploads', 'categorical_mappings.json')
+        with open(dict_file_path, 'w', encoding='utf-8') as f:
+            json.dump(code_to_category_map, f, indent=4, ensure_ascii=False)
+        print(f"Mapeos de códigos de categorías guardados en: {dict_file_path}")
+
+        # Guardar las definiciones de dtype
+        dtype_definitions_path = os.path.join('./uploads', 'dtype_definitions.json')
+        with open(dtype_definitions_path, 'w', encoding='utf-8') as f:
+            json.dump(dtype_definitions, f, indent=4, ensure_ascii=False)
+        print(f"Definiciones de Dtype guardadas en: {dtype_definitions_path}")
+        
     else:
         print("No data to process or save.")
         

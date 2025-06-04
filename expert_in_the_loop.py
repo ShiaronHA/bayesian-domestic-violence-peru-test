@@ -15,10 +15,10 @@ import numpy as np
 def main():
 
     # 1. Leemos los DataFrames de entrenamiento y validación
-    train_df_encoded = pd.read_csv('./data/train_df_encoded.csv')
-    train_df = pd.read_csv('./data/train_df.csv')
-    val_df_encoded = pd.read_csv('./data/val_df_encoded.csv')
-    val_df = pd.read_csv('./data/val_df.csv')
+    train_df_encoded = pd.read_csv('./datasets/train_df_encoded.csv')
+    train_df = pd.read_csv('./datasets/train_df.csv')
+    val_encoded = pd.read_csv('./datasets/val_df_encoded.csv')
+    val_df = pd.read_csv('./datasets/val_df.csv')
     print("DataFrames cargados correctamente.")
 
     # --- Cargar dtype_definitions y re-aplicar a train_df ---
