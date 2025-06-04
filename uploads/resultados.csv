@@ -1,15 +1,7 @@
 Model,BDeu_Score,Score_method,Algorithm,Sample_Size,Training_Time_Seconds,Number_of_Edges,Number_of_df_variables
-DiscreteBayesianNetwork with 10 nodes and 6 edges,-1091325.5659641244,pillai,pc,20000,196.309641122818,10,29
-DiscreteBayesianNetwork with 15 nodes and 9 edges,-1847455.0040121076,pillai,pc,30000,740.7956581115723,15,29
-DiscreteBayesianNetwork with 29 nodes and 74 edges,-4258128.72184752,bdeu,hill_climb,50000,10.427795648574829,29,29
-DiscreteBayesianNetwork with 29 nodes and 66 edges,-4264305.643679401,bdeu,hill_climb,30000,7.820557594299316,29,29
-DiscreteBayesianNetwork with 29 nodes and 66 edges,-4267041.666085145,bdeu,hill_climb,20000,2.638789176940918,29,29
-DiscreteBayesianNetwork with 29 nodes and 64 edges,-4267637.257985453,bic-d,GES,50000,10.038361549377441,29,29
-DiscreteBayesianNetwork with 29 nodes and 62 edges,-4270074.395102005,bic-d,hill_climb,50000,8.768131494522095,29,29
-DiscreteBayesianNetwork with 29 nodes and 61 edges,-4274615.60584577,bic-cg,GES,30000,230.3813829421997,29,29
-DiscreteBayesianNetwork with 29 nodes and 59 edges,-4274909.165672597,bic-cg,GES,50000,328.5825171470642,29,29
-DiscreteBayesianNetwork with 29 nodes and 59 edges,-4277514.210513178,bic-d,GES,30000,3.118696451187134,29,29
-DiscreteBayesianNetwork with 29 nodes and 59 edges,-4277662.39832471,bic-d,hill_climb,30000,6.314319610595703,29,29
-DiscreteBayesianNetwork with 29 nodes and 54 edges,-4285618.519874819,bic-d,GES,20000,2.719374418258667,29,29
-DiscreteBayesianNetwork with 29 nodes and 50 edges,-4286912.727778926,bic-cg,GES,20000,141.56200075149536,29,29
-DiscreteBayesianNetwork with 29 nodes and 52 edges,-4288083.88638742,bic-d,hill_climb,20000,2.30289363861084,29,29
+DiscreteBayesianNetwork with 31 nodes and 83 edges,-5422977.035080509,bdeu,hill_climb,50000,6.977930068969727,31,31
+DiscreteBayesianNetwork with 31 nodes and 83 edges,-5424911.469169447,bdeu,hill_climb,40000,4.6989758014678955,31,31
+DiscreteBayesianNetwork with 31 nodes and 74 edges,-5432477.738663652,bdeu,hill_climb,20000,3.7071802616119385,31,31
+DiscreteBayesianNetwork with 31 nodes and 70 edges,-5438665.408294817,bic-d,hill_climb,50000,4.536402940750122,31,31
+DiscreteBayesianNetwork with 31 nodes and 70 edges,-5443368.8225345155,bic-d,hill_climb,40000,4.045367240905762,31,31
+DiscreteBayesianNetwork with 31 nodes and 56 edges,-5453473.585349142,bic-d,hill_climb,20000,2.6282622814178467,31,31

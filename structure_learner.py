@@ -252,10 +252,10 @@ def main():
         ('hill_climb', 'bic-d'), 
         #('hill_climb', 'k2'),
         ('hill_climb', 'bdeu'),
-        ('pc', 'pillai'),
-        ('pc', 'chi_square'),
-	    ('GES','bic-d'),
-        ('GES', 'bic-cg')
+        #('pc', 'pillai'),
+        #('pc', 'chi_square'),
+	#    ('GES','bic-d'),
+        #('GES', 'bic-cg')
         #('mmhc', 'bic'),
 	    #('mmhc', 'bdeu')
     ]

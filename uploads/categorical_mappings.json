@@ -1,10 +1,9 @@
 {
     "CONDICION": {
         "0": "CONTINUADOR",
-        "1": "DERIVADO",
-        "2": "NUEVO",
-        "3": "REINCIDENTE",
-        "4": "REINGRESO"
+        "1": "NUEVO",
+        "2": "REINCIDENTE",
+        "3": "REINGRESO"
     },
     "EDAD_VICTIMA": {
         "0": "PRIMERA INFANCIA",
@@ -24,9 +23,11 @@
     "ETNIA_VICTIMA": {
         "0": "AIMARA",
         "1": "BLANCO",
-        "2": "INDIGENA/NEGRO/NO SABE",
+        "2": "INDIGENA",
         "3": "MESTIZO",
-        "4": "QUECHUA"
+        "4": "NEGRO/NO SABE",
+        "5": "OTRO",
+        "6": "QUECHUA"
     },
     "AREA_RESIDENCIA_DOMICILIO": {
         "0": "RURAL",
@@ -63,11 +64,12 @@
         "2": "SI"
     },
     "EDAD_AGRESOR": {
-        "0": "ADOLESCENCIA",
-        "1": "JOVEN",
-        "2": "ADULTO JOVEN",
-        "3": "ADULTO",
-        "4": "ADULTO MAYOR"
+        "0": "INFANCIA",
+        "1": "ADOLESCENCIA",
+        "2": "JOVEN",
+        "3": "ADULTO JOVEN",
+        "4": "ADULTO",
+        "5": "ADULTO MAYOR"
     },
     "SEXO_AGRESOR": {
         "0": "HOMBRE",
@@ -82,6 +84,10 @@
         "5": "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO",
         "6": "SUPERIOR TECNICO/UNIVERSITARIO COMPLETO",
         "7": "MAESTRIA / DOCTORADO"
+    },
+    "TRABAJA_AGRESOR": {
+        "0": "NO",
+        "1": "SI"
     },
     "FRECUENCIA_AGREDE": {
         "0": "MENSUAL",
@@ -126,6 +132,11 @@
     "REDES_FAM_SOC": {
         "0": "NO",
         "1": "SI"
+    },
+    "NIVEL_VIOLENCIA_DISTRITO": {
+        "0": "Bajo",
+        "1": "Medio",
+        "2": "Alto"
     },
     "SEGURO_VICTIMA": {
         "0": "NO",

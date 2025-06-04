@@ -1,0 +1,266 @@
+{
+    "CONDICION": {
+        "categories": [
+            "CONTINUADOR",
+            "NUEVO",
+            "REINCIDENTE",
+            "REINGRESO"
+        ],
+        "ordered": false
+    },
+    "EDAD_VICTIMA": {
+        "categories": [
+            "PRIMERA INFANCIA",
+            "INFANCIA",
+            "ADOLESCENCIA",
+            "JOVEN",
+            "ADULTO JOVEN",
+            "ADULTO",
+            "ADULTO MAYOR"
+        ],
+        "ordered": true
+    },
+    "LENGUA_MATERNA_VICTIMA": {
+        "categories": [
+            "AIMARA",
+            "CASTELLANO",
+            "OTRAS",
+            "QUECHUA"
+        ],
+        "ordered": false
+    },
+    "ETNIA_VICTIMA": {
+        "categories": [
+            "AIMARA",
+            "BLANCO",
+            "INDIGENA",
+            "MESTIZO",
+            "NEGRO/NO SABE",
+            "OTRO",
+            "QUECHUA"
+        ],
+        "ordered": false
+    },
+    "AREA_RESIDENCIA_DOMICILIO": {
+        "categories": [
+            "RURAL",
+            "URBANO"
+        ],
+        "ordered": false
+    },
+    "ESTADO_CIVIL_VICTIMA": {
+        "categories": [
+            "CASADO/A",
+            "DIVORCIADO/A",
+            "SOLTERO/A",
+            "VIUDO/A"
+        ],
+        "ordered": false
+    },
+    "NIVEL_EDUCATIVO_VICTIMA": {
+        "categories": [
+            "SIN NIVEL/INICIAL/BASICA ESPECIAL",
+            "PRIMARIA INCOMPLETA",
+            "PRIMARIA COMPLETA",
+            "SECUNDARIA INCOMPLETA",
+            "SECUNDARIA COMPLETA",
+            "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO",
+            "SUPERIOR TECNICO/UNIVERSITARIO COMPLETO",
+            "MAESTRIA / DOCTORADO"
+        ],
+        "ordered": true
+    },
+    "TRABAJA_VICTIMA": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "VINCULO_AGRESOR_VICTIMA": {
+        "categories": [
+            "SIN VINCULO RELACIONAL DE PAREJA NI FAMILIAR",
+            "VINCULO RELACIONAL DE PAREJA",
+            "VINCULO RELACIONAL FAMILIAR"
+        ],
+        "ordered": false
+    },
+    "AGRESOR_VIVE_CASA_VICTIMA": {
+        "categories": [
+            "ESPORADICAMENTE, VA DE VEZ EN CUANDO",
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "EDAD_AGRESOR": {
+        "categories": [
+            "INFANCIA",
+            "ADOLESCENCIA",
+            "JOVEN",
+            "ADULTO JOVEN",
+            "ADULTO",
+            "ADULTO MAYOR"
+        ],
+        "ordered": true
+    },
+    "SEXO_AGRESOR": {
+        "categories": [
+            "HOMBRE",
+            "MUJER"
+        ],
+        "ordered": false
+    },
+    "NIVEL_EDUCATIVO_AGRESOR": {
+        "categories": [
+            "SIN NIVEL/INICIAL/BASICA ESPECIAL",
+            "PRIMARIA INCOMPLETA",
+            "PRIMARIA COMPLETA",
+            "SECUNDARIA INCOMPLETA",
+            "SECUNDARIA COMPLETA",
+            "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO",
+            "SUPERIOR TECNICO/UNIVERSITARIO COMPLETO",
+            "MAESTRIA / DOCTORADO"
+        ],
+        "ordered": true
+    },
+    "TRABAJA_AGRESOR": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "FRECUENCIA_AGREDE": {
+        "categories": [
+            "MENSUAL",
+            "QUINCENAL",
+            "SEMANAL",
+            "INTERMITENTE",
+            "DIARIO"
+        ],
+        "ordered": true
+    },
+    "NIVEL_DE_RIESGO_VICTIMA": {
+        "categories": [
+            "LEVE",
+            "MODERADO",
+            "SEVERO"
+        ],
+        "ordered": true
+    },
+    "ESTUDIA": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "ESTADO_AGRESOR_U_A": {
+        "categories": [
+            "AMBOS (EFECTOS DE ALCOHOL Y DROGAS)",
+            "EFECTOS DE ALCOHOL",
+            "EFECTOS DE DROGAS",
+            "SOBRIO/A"
+        ],
+        "ordered": false
+    },
+    "ESTADO_AGRESOR_G": {
+        "categories": [
+            "AMBOS (EFECTOS DE ALCOHOL Y DROGAS)",
+            "EFECTOS DE ALCOHOL",
+            "EFECTOS DE DROGAS",
+            "SOBRIO/A"
+        ],
+        "ordered": false
+    },
+    "ESTADO_VICTIMA_U_A": {
+        "categories": [
+            "AMBOS (EFECTOS DE ALCOHOL Y DROGAS)",
+            "EFECTOS DE ALCOHOL",
+            "EFECTOS DE DROGAS",
+            "SOBRIO/A"
+        ],
+        "ordered": false
+    },
+    "ESTADO_VICTIMA_G": {
+        "categories": [
+            "AMBOS (EFECTOS DE ALCOHOL Y DROGAS)",
+            "EFECTOS DE ALCOHOL",
+            "EFECTOS DE DROGAS",
+            "SOBRIO/A"
+        ],
+        "ordered": false
+    },
+    "REDES_FAM_SOC": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "NIVEL_VIOLENCIA_DISTRITO": {
+        "categories": [
+            "Bajo",
+            "Medio",
+            "Alto"
+        ],
+        "ordered": true
+    },
+    "SEGURO_VICTIMA": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "TRATAMIENTO_VICTIMA": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "VINCULO_AFECTIVO": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "VIOLENCIA_ECONOMICA": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "VIOLENCIA_PSICOLOGICA": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "VIOLENCIA_FISICA": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "VIOLENCIA_SEXUAL": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    },
+    "HIJOS_VIVIENTES": {
+        "categories": [
+            "NO",
+            "SI"
+        ],
+        "ordered": false
+    }
+}
