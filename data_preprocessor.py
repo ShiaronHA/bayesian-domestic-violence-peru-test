@@ -353,13 +353,17 @@ def calculate_and_classify_violence_level(df, input_data_dir):
     df_merge = pd.merge(df_casos, df_poblacion_reducido, on='UBIGEO', how='left')
     df_merge['ratio_violencia'] = df_merge['casos_reportados'] / df_merge['poblacion']
 
-    def clasificar_violencia(ratio):
+    def clasificar_violencia_percentiles(ratio, series_ratio):
         if pd.isna(ratio): return 'Desconocido'
-        if ratio < 0.01: return 'Bajo'
-        elif ratio < 0.02: return 'Medio'
+        
+        p33 = series_ratio.quantile(0.33)
+        p66 = series_ratio.quantile(0.66)
+        
+        if ratio <= p33: return 'Bajo'
+        elif ratio <= p66: return 'Medio'
         else: return 'Alto'
         
-    df_merge['NIVEL_VIOLENCIA_DISTRITO'] = df_merge['ratio_violencia'].apply(clasificar_violencia)
+    df_merge['NIVEL_VIOLENCIA_DISTRITO'] = df_merge['ratio_violencia'].apply(clasificar_violencia_percentiles)
     df_merge['NIVEL_VIOLENCIA_DISTRITO'] = df_merge['NIVEL_VIOLENCIA_DISTRITO'].astype('category')
     
     df_copy = pd.merge(df_copy, df_merge[['UBIGEO', 'NIVEL_VIOLENCIA_DISTRITO']], on='UBIGEO', how='left')
