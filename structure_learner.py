@@ -103,11 +103,21 @@ def preprocess_data(filepath):
             
         # Convertir variables categóricas a códigos numéricos
         df_encoded = df.apply(lambda col: col.cat.codes if col.dtype.name == 'category' else col)
-        category_mappings = {
+        
+        code_to_category_map = {
             col: dict(enumerate(df[col].cat.categories))
             for col in df.select_dtypes(['category']).columns
         }
-        return df_encoded, df, category_mappings
+
+        dtype_definitions = {}
+        for col_name in df.select_dtypes(['category']).columns:
+            cat_dtype = df[col_name].dtype
+            if isinstance(cat_dtype, pd.CategoricalDtype):
+                dtype_definitions[col_name] = {
+                    'categories': list(cat_dtype.categories),
+                    'ordered': cat_dtype.ordered
+                }
+        return df_encoded, df, code_to_category_map, dtype_definitions
     
     # --- Main para experimentos completos ---
 
@@ -199,7 +209,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
 def main():
     
     filepath = 'data/df_processed.csv'
-    df_encoded, df, dict = preprocess_data(filepath)
+    df_encoded, df, code_to_category_map, dtype_definitions = preprocess_data(filepath)
     total_size = len(df)
 
     # Paso 1: recolectar todas las categorías mínimas necesarias
@@ -278,6 +288,18 @@ def main():
         sample_data = train_df.loc[sample_indices].reset_index(drop=True)
         sample_data_encoded = train_encoded.loc[sample_indices].reset_index(drop=True)
 
+        # --- Re-aplicar dtypes categóricos a sample_data para asegurar el orden ---
+        for col_name, defs in dtype_definitions.items():
+            if col_name in sample_data.columns:
+                try:
+                    cat_dtype = pd.CategoricalDtype(categories=defs['categories'], ordered=defs['ordered'])
+                    sample_data[col_name] = sample_data[col_name].astype(cat_dtype)
+                except Exception as e:
+                    print(f"[ADVERTENCIA] No se pudo convertir la columna {col_name} al CategoricalDtype especificado: {e}")
+                    print(f"  Categorías esperadas: {defs['categories']}")
+                    print(f"  Categorías encontradas en los datos: {list(sample_data[col_name].unique()) if hasattr(sample_data[col_name], 'unique') else 'N/A'}")
+        # --- Fin de la re-aplicación ---
+
         for algorithm, score_method in algorithms_to_experiment:
             if algorithm == 'hill_climb' or algorithm == 'pc':
                 df_to_sl=sample_data_encoded
@@ -347,11 +369,17 @@ def main():
     
     
 
-    # Guardar los mapeos (dict)
+    # Guardar los mapeos de códigos de categorías (anteriormente 'dict')
     dict_file_path = os.path.join('./uploads', 'categorical_mappings.json')
     with open(dict_file_path, 'w', encoding='utf-8') as f:
-        json.dump(dict, f, indent=4, ensure_ascii=False)
-    print(f"Mapeos de categorías guardados en: {dict_file_path}")
+        json.dump(code_to_category_map, f, indent=4, ensure_ascii=False)
+    print(f"Mapeos de códigos de categorías guardados en: {dict_file_path}")
+
+    # Guardar las definiciones de dtype
+    dtype_definitions_path = os.path.join('./uploads', 'dtype_definitions.json')
+    with open(dtype_definitions_path, 'w', encoding='utf-8') as f:
+        json.dump(dtype_definitions, f, indent=4, ensure_ascii=False)
+    print(f"Definiciones de Dtype guardadas en: {dtype_definitions_path}")
     
     # Guardar imagen del best_model en la carpeta dag
     try:
