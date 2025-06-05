@@ -131,7 +131,7 @@ def main():
         ('hill_climb', 'bdeu'),
         ('pc', 'pillai'),
         #('pc', 'chi_square'),
-	#    ('GES','bic-d'),
+	    ('GES','bic-d'),
         ('GES', 'bic-cg')
         #('mmhc', 'bic'),
 	    #('mmhc', 'bdeu')
