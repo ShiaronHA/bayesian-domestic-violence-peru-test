@@ -34,7 +34,17 @@ def collect_all_categories(df):
             row = df[df[col] == cat].sample(n=1, random_state=42)
             rows.append(row)
 
-    return pd.concat(rows).drop_duplicates().reset_index()
+    if not rows:
+        print("[INFO] collect_all_categories: No rows sampled, returning empty DataFrame with 'index' column.")
+        # df.iloc[0:0] creates an empty DataFrame with original df's columns and index.
+        # .reset_index() converts that original index to a column (e.g., 'index')
+        # and sets a new RangeIndex. This matches the structure expected by downstream code.
+        return df.iloc[0:0].reset_index()
+
+    concatenated_df = pd.concat(rows)
+    deduplicated_df = concatenated_df.drop_duplicates()
+    result_df = deduplicated_df.reset_index()
+    return result_df
    
 def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path=None, expert_knowledge=None, enforce_expert_knowledge=False):
         df.info()
@@ -120,10 +130,29 @@ def main():
     print("DataFrames cargados correctamente.")
     
     # --- Cargar dtype_definitions y re-aplicar a train_df ---
+    dtype_definitions = {} # Initialize
     dtype_definitions_path = './uploads/dtype_definitions.json'
     if os.path.exists(dtype_definitions_path):
         with open(dtype_definitions_path, 'r', encoding='utf-8') as f:
             dtype_definitions = json.load(f)
+        print(f"Definiciones de dtype cargadas desde {dtype_definitions_path}")
+
+        # --- Aplicar dtypes categóricos a train_df ---
+        print("Aplicando dtypes categóricos a train_df...")
+        for col_name, defs in dtype_definitions.items():
+            if col_name in train_df.columns:
+                if isinstance(defs, dict) and 'categories' in defs and 'ordered' in defs:
+                    try:
+                        cat_dtype = pd.CategoricalDtype(categories=defs['categories'], ordered=defs['ordered'])
+                        train_df[col_name] = train_df[col_name].astype(cat_dtype)
+                    except Exception as e:
+                        print(f"  [ADVERTENCIA] No se pudo convertir la columna {col_name} en train_df al CategoricalDtype: {e}")
+                else:
+                    print(f"  [ADVERTENCIA] Definición de dtype incompleta o malformada para '{col_name}' en train_df. Se omite conversión.")
+        print("Dtypes aplicados a train_df.")
+        # --- Fin de la aplicación de dtypes a train_df ---
+    else:
+        print(f"[ADVERTENCIA] No se encontró el archivo de definiciones de dtype en {dtype_definitions_path}. train_df podría no tener los dtypes categóricos correctos.")
 
     algorithms_to_experiment = [
         ('hill_climb', 'bic-d'), 
@@ -166,15 +195,17 @@ def main():
         sample_data_encoded = train_encoded.loc[sample_indices].reset_index(drop=True)
 
         # --- Re-aplicar dtypes categóricos a sample_data para asegurar el orden ---
-        for col_name, defs in dtype_definitions.items():
-            if col_name in sample_data.columns:
-                try:
-                    cat_dtype = pd.CategoricalDtype(categories=defs['categories'], ordered=defs['ordered'])
-                    sample_data[col_name] = sample_data[col_name].astype(cat_dtype)
-                except Exception as e:
-                    print(f"[ADVERTENCIA] No se pudo convertir la columna {col_name} al CategoricalDtype especificado: {e}")
-                    print(f"  Categorías esperadas: {defs['categories']}")
-                    print(f"  Categorías encontradas en los datos: {list(sample_data[col_name].unique()) if hasattr(sample_data[col_name], 'unique') else 'N/A'}")
+        # This loop might be redundant if train_df already has correct dtypes and sample_data is a slice.
+        # Commenting out for now, can be re-enabled if issues arise with sample_data dtypes.
+        # for col_name, defs in dtype_definitions.items():
+        #     if col_name in sample_data.columns:
+        #         try:
+        #             cat_dtype = pd.CategoricalDtype(categories=defs['categories'], ordered=defs['ordered'])
+        #             sample_data[col_name] = sample_data[col_name].astype(cat_dtype)
+        #         except Exception as e:
+        #             print(f"[ADVERTENCIA] No se pudo convertir la columna {col_name} en sample_data al CategoricalDtype especificado: {e}")
+        #             print(f"  Categorías esperadas: {defs.get('categories', 'N/A')}")
+        #             print(f"  Categorías encontradas en los datos: {list(sample_data[col_name].unique()) if hasattr(sample_data[col_name], 'unique') else 'N/A'}")
         # --- Fin de la re-aplicación ---
 
         for algorithm, score_method in algorithms_to_experiment:
