@@ -113,9 +113,9 @@ def main():
     errors = []
             
     # 1. Leemos los DataFrames de entrenamiento y validación
-    train_encoded = pd.read_csv('./datasets/train_df_encoded.csv')
+    train_encoded = pd.read_csv('./datasets/train_encoded.csv')
     train_df = pd.read_csv('./datasets/train_df.csv')
-    val_encoded = pd.read_csv('./datasets/val_df_encoded.csv')
+    val_encoded = pd.read_csv('./datasets/val_encoded.csv')
     val_df = pd.read_csv('./datasets/val_df.csv')
     print("DataFrames cargados correctamente.")
     

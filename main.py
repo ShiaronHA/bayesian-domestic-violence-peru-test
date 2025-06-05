@@ -31,6 +31,7 @@ def parameter_learning(model, df):
     print("\nEstimando parámetros con BayesianEstimator...")
     estimator = BayesianEstimator(model, df)
     model.fit(df, estimator=BayesianEstimator, prior_type='BDeu')
+    
     # Guardar el modelo en la carpeta uploads con el formato BIF
     model_file_path = os.path.join('./models', 'mi_modelo_red.bif')
     writer = BIFWriter(model)
@@ -58,9 +59,9 @@ def bayesian_inference(model, evidence):
 def main():
 
     # 1. Leemos los DataFrames de entrenamiento y validación
-    train_df_encoded = pd.read_csv('./datasets/train_df_encoded.csv')
+    train_encoded = pd.read_csv('./datasets/train_encoded.csv')
     train_df = pd.read_csv('./datasets/train_df.csv')
-    val_encoded = pd.read_csv('./datasets/val_df_encoded.csv')
+    val_encoded = pd.read_csv('./datasets/val_encoded.csv')
     val_df = pd.read_csv('./datasets/val_df.csv')
     print("DataFrames cargados correctamente.")
     
@@ -76,10 +77,10 @@ def main():
     
     
     # Aprendizaje de parámetros usando el training set
-    model_rb = parameter_learning(best_model, train_df_encoded)
+    model_rb = parameter_learning(best_model, train_encoded)
     
     #Experimento 2: Aprendiendo con Random Forest
-    model_rf = learn_with_random_forest(train_df_encoded, 'NIVEL_DE_RIESGO_VICTIMA', val_df_encoded)
+    model_rf = learn_with_random_forest(train_encoded, 'NIVEL_DE_RIESGO_VICTIMA', val_encoded)
     
     #Evaluando modelo Random Forest
     
