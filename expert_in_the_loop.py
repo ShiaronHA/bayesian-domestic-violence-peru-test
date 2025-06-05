@@ -109,8 +109,8 @@ def main():
     }
 
     estimator = ExpertInLoop(train_df)
-    dag = estimator.estimate(pval_threshold=0.05,
-                            effect_size_threshold=0.001, #Acepta relaciones mas debiles
+    dag = estimator.estimate(pval_threshold=0.03,
+                            effect_size_threshold=0.0001, #Acepta relaciones mas debiles
                             variable_descriptions=descriptions,
                             use_llm=True,
                             llm_model="gemini/gemini-1.5-flash")

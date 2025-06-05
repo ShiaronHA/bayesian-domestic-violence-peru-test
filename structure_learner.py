@@ -110,6 +110,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
 
 def main():
      
+    errors = []
             
     # 1. Leemos los DataFrames de entrenamiento y validación
     train_encoded = pd.read_csv('./datasets/train_df_encoded.csv')
@@ -126,12 +127,12 @@ def main():
 
     algorithms_to_experiment = [
         ('hill_climb', 'bic-d'), 
-        #('hill_climb', 'k2'),
+        ('hill_climb', 'k2'),
         ('hill_climb', 'bdeu'),
-        #('pc', 'pillai'),
+        ('pc', 'pillai'),
         #('pc', 'chi_square'),
 	#    ('GES','bic-d'),
-        #('GES', 'bic-cg')
+        ('GES', 'bic-cg')
         #('mmhc', 'bic'),
 	    #('mmhc', 'bdeu')
     ]
@@ -201,31 +202,44 @@ def main():
                 enforce_expert_knowledge = True
             print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
             start_time = time.time()
-            model = learn_structure(
-                df_to_sl,
-                algorithm=algorithm,
-                scoring_method=score_method,
-                output_path=f'./models/model_structure_31_{algorithm}_{score_method}_{sample_size}.pkl',
-                expert_knowledge=expert_knowledge,
-                enforce_expert_knowledge=enforce_expert_knowledge
-            )
-            model_variables = set(var for edge in model.edges() for var in edge)
-            # Use train_df_encoded for calculating structure score
-            df_filtered = train_encoded[list(model_variables)] 
-            score = structure_score(model, df_filtered, scoring_method="bdeu")
-            print("Calidad de red BDeue:", score)
-            elapsed_time = time.time() - start_time
-            key = f"{algorithm}_{score_method}_{sample_size}"
-            trained_models[key] = model
-            results.append({'Model': model,
-                            'BDeu_Score': score,
-                            'Score_method': score_method,
-                            'Algorithm': algorithm,
-                            'Sample_Size': sample_size,
-                            'Training_Time_Seconds': elapsed_time,
-                            'Number_of_Edges': len(model),
-                            'Number_of_df_variables': len(df_to_sl.columns)
-                            })
+            
+            try:
+                model = learn_structure(
+                    df_to_sl,
+                    algorithm=algorithm,
+                    scoring_method=score_method,
+                    output_path=f'./models/model_structure_31_{algorithm}_{score_method}_{sample_size}.pkl',
+                    expert_knowledge=expert_knowledge,
+                    enforce_expert_knowledge=enforce_expert_knowledge
+                )
+                model_variables = set(var for edge in model.edges() for var in edge)
+                # Use train_df_encoded for calculating structure score
+                df_filtered = train_encoded[list(model_variables)] 
+                score = structure_score(model, df_filtered, scoring_method="bdeu")
+                print("Calidad de red BDeue:", score)
+                elapsed_time = time.time() - start_time
+                key = f"{algorithm}_{score_method}_{sample_size}"
+                trained_models[key] = model
+                results.append({'Model': model,
+                                'BDeu_Score': score,
+                                'Score_method': score_method,
+                                'Algorithm': algorithm,
+                                'Sample_Size': sample_size,
+                                'Training_Time_Seconds': elapsed_time,
+                                'Number_of_Edges': len(model),
+                                'Number_of_df_variables': len(df_to_sl.columns)
+                                })
+            except Exception as e:
+                error_msg = str(e)
+                print(f"[ERROR] Falló {algorithm} con {score_method} y sample_size={sample_size}: {error_msg}")
+                errors.append({
+                    'algorithm': algorithm,
+                    'score_method': score_method,
+                    'sample_size': sample_size,
+                    'error': error_msg
+                })
+                continue
+            
     results_structure_learning = pd.DataFrame(results)
     results_structure_learning = results_structure_learning.sort_values(by='BDeu_Score', ascending=False).reset_index(drop=True)
     
@@ -248,7 +262,12 @@ def main():
         pickle.dump(best_model, f)
     print(f"\nEl mejor modelo ha sido guardado en: {filename}")
     
-    
+    # Guardar errores a CSV
+    if errors:
+        errors_df = pd.DataFrame(errors)
+        errors_df.to_csv('./uploads/structure_learning_classic_errors.csv', index=False)
+        print(f"[INFO] Errores guardados en './uploads/structure_learning_classic_errors.csv'")
+        
     # Guardar imagen del best_model en la carpeta dag
     try:
         # Convertir el modelo a un grafo de networkx

@@ -55,61 +55,13 @@ def bayesian_inference(model, evidence):
     print(f"Resultado de la inferencia guardado en: {result_file_path}")
     
 
-def learn_with_random_forest(train, target_col, val):
-    
-    # Dividir el conjunto de entrenamiento en características (X) y etiquetas (y)
-    X_train = train.drop(columns=[target_col])
-    y_train = train[target_col]
-    X_val = val.drop(columns=[target_col])
-    y_val = val[target_col]
-    print(f"Forma de X_train: {X_train.shape}, y_train: {y_train.shape}")
-    print(f"Forma de X_val: {X_val.shape}, y_val: {y_val.shape}")
-    
-    rf_model = RandomForestClassifier(random_state = 42)
-
-    rf_model.fit(X_train, y_train)
-
-    accuracy_rf = accuracy_score(y_val, rf_model.predict(X_val))
-    print(f"Precisión del modelo Random Forest: {accuracy_rf}")
-
-    conf_matrix = confusion_matrix(y_val, rf_model.predict(X_val))
-    print(f'Matriz de Confusión:\n{conf_matrix}')
-
-    # Visualizamos la matriz de confusión con seaborn
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues')
-    plt.title('Matriz de Confusión')
-    plt.xlabel('Predicción')
-    plt.ylabel('Real')
-    plt.show()
-    
-    #Guardar el grafico de la matriz de confusión
-    conf_matrix_file_path = os.path.join('./plots', 'confusion_matrix_rf.png')
-    plt.savefig(conf_matrix_file_path)
-    print(f"Matriz de confusión guardada en: {conf_matrix_file_path}")
-
-    # Reporte de clasificación
-    class_report = classification_report(y_val, rf_model.predict(X_val))
-    print(f'Classification Report:\n{class_report}')
-    
-    # Guarda el reporte de clasificación en un archivo
-    report_file_path = os.path.join('./uploads', 'classification_report_rf.txt')
-    with open(report_file_path, 'w') as f:
-        f.write(class_report)
-    print(f"Reporte de clasificación guardado en: {report_file_path}")
-    
-    return rf_model
-
 def main():
-    
-    filepath = 'data/df_processed.csv'
 
-    
     # 1. Leemos los DataFrames de entrenamiento y validación
-    train_df_encoded = pd.read_csv('./data/train_df_encoded.csv')
-    train_df = pd.read_csv('./data/train_df.csv')
-    val_df_encoded = pd.read_csv('./data/val_df_encoded.csv')
-    val_df = pd.read_csv('./data/val_df.csv')
+    train_df_encoded = pd.read_csv('./datasets/train_df_encoded.csv')
+    train_df = pd.read_csv('./datasets/train_df.csv')
+    val_encoded = pd.read_csv('./datasets/val_df_encoded.csv')
+    val_df = pd.read_csv('./datasets/val_df.csv')
     print("DataFrames cargados correctamente.")
     
 

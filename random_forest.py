@@ -131,22 +131,22 @@ def main():
     print("\nEvaluando el modelo aprendido...")
 
     # Guardar modelo entrenado
-    model_dir = './models'
-    os.makedirs(model_dir, exist_ok=True)
-    model_path1 = os.path.join(model_dir, 'random_forest_model_part1.pkl')
-    model_path2 = os.path.join(model_dir, 'random_forest_model_part2.pkl')
+    # model_dir = './models'
+    # os.makedirs(model_dir, exist_ok=True)
+    # model_path1 = os.path.join(model_dir, 'random_forest_model_part1.pkl')
+    # model_path2 = os.path.join(model_dir, 'random_forest_model_part2.pkl')
 
-    # Serializar en memoria
-    model_bytes = pickle.dumps(model_rf)
+    # # Serializar en memoria
+    # model_bytes = pickle.dumps(model_rf)
 
-    # Dividir en 2 partes
-    split_index = len(model_bytes) // 2
-    with open(model_path1, 'wb') as f1:
-        f1.write(model_bytes[:split_index])
-    with open(model_path2, 'wb') as f2:
-        f2.write(model_bytes[split_index:])
+    # # Dividir en 2 partes
+    # split_index = len(model_bytes) // 2
+    # with open(model_path1, 'wb') as f1:
+    #     f1.write(model_bytes[:split_index])
+    # with open(model_path2, 'wb') as f2:
+    #     f2.write(model_bytes[split_index:])
 
-    print(f"Modelo guardado en dos partes:\n - {model_path1}\n - {model_path2}")
+    # print(f"Modelo guardado en dos partes:\n - {model_path1}\n - {model_path2}")
 
     # (Opcional: descomentar si se desea verificar la carga del modelo)
     # with open(model_path1, 'rb') as f1, open(model_path2, 'rb') as f2:
