@@ -15,8 +15,8 @@ def feature_selection(train, X_val, target_col):
     y = train[target_col]
 
     #se codifica la variable objetivo
-    LabelBinarizer = LabelBinarizer()
-    y = LabelBinarizer.fit_transform(y).ravel()
+    label_binarizer = LabelBinarizer()
+    y = label_binarizer.fit_transform(y).ravel()
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
