@@ -5,6 +5,39 @@ import matplotlib.pyplot as plt
 import os
 import pickle
 import pandas as pd
+from sklearn.linear_model import LassoCV
+from sklearn.preprocessing import StandardScaler, LabelBinarizer
+
+def feature_selection(train, X_val, target_col):
+    
+    #Dividir los datos en características y variable objetivo
+    X = train.drop(target_col, axis=1)
+    y = train[target_col]
+
+    #se codifica la variable objetivo
+    LabelBinarizer = LabelBinarizer()
+    y = LabelBinarizer.fit_transform(y).ravel()
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    lasso = LassoCV(cv=5, random_state=42).fit(X_scaled, y)
+    selected_features = X.columns[(lasso.coef_ > 0.01)]
+
+    print("Características seleccionadas por Lasso:")
+    print(selected_features)
+
+    #alinear las columnas
+    X_val_aligned = X_val.reindex(columns=X.columns, fill_value=0)
+
+    X_train_lasso = X[selected_features]
+    X_val_lasso = X_val_aligned[selected_features]
+    
+    #Comprobas que las columnas de entrenamiento y prueba son iguales
+    print(f"Las caracteristicas de train y val son iguales: {all(X_train_lasso.columns == X_val_lasso.columns)}")
+    
+    return X_train_lasso, X_val_lasso
+
 
 def learn_with_random_forest(train, target_col, val, output_dir='./results'):
     os.makedirs(output_dir, exist_ok=True)
@@ -15,9 +48,16 @@ def learn_with_random_forest(train, target_col, val, output_dir='./results'):
     y_train = train[target_col]
     X_val = val.drop(columns=[target_col])
     y_val = val[target_col]
+    
 
     print(f"Forma de X_train: {X_train.shape}, y_train: {y_train.shape}")
     print(f"Forma de X_val: {X_val.shape}, y_val: {y_val.shape}")
+
+    # Selección de características usando Lasso
+    X_train, X_val = feature_selection(train, X_val, target_col)
+    
+    print(f"Forma de X_train_lasso: {X_train.shape}, y_train: {y_train.shape}")
+    print(f"Forma de X_val_lasso: {X_val.shape}, y_val: {y_val.shape}")
 
     # Entrenar modelo
     rf_model = RandomForestClassifier(random_state=42)
@@ -104,12 +144,30 @@ def main():
     # Guardar modelo entrenado
     model_dir='./models'
     os.makedirs(model_dir, exist_ok=True)
-    model_path = os.path.join(model_dir, 'random_forest_model.pkl')
-    with open(model_path, 'wb') as f:
-        pickle.dump(model_rf, f)
-    print(f"Modelo guardado en: {model_path}")
+    model_path1 = os.path.join(model_dir, 'random_forest_model_part1.pkl')
+    model_path2 = os.path.join(model_dir, 'random_forest_model_part2.pkl')
+
+    # Serializar en memoria
+    model_bytes = pickle.dumps(model_rf)
+
+    # Dividir en 2 partes
+    split_index = len(model_bytes) // 2
+    with open(model_path1, 'wb') as f1:
+        f1.write(model_bytes[:split_index])
+    with open(model_path2, 'wb') as f2:
+        f2.write(model_bytes[split_index:])
+
+    print(f"Modelo guardado en dos partes:\n - {model_path1}\n - {model_path2}")
     
-        
+    
+    # Leer ambas partes y recombinar
+    # with open(model_path1, 'rb') as f1, open(model_path2, 'rb') as f2:
+    #     model_bytes = f1.read() + f2.read()
+
+    # # Deserializar
+    # model_rf = pickle.loads(model_bytes)
+    # print("Modelo cargado correctamente desde dos partes.")      
+      
 if __name__ == "__main__":
     main()
 
