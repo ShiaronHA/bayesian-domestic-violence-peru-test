@@ -199,14 +199,14 @@ def main():
                 df_to_sl=sample_data
                 
             # Validación: si es PC y sample_size == 50000, saltar este experimento    
-            if algorithm == 'pc' and sample_size == 50000:
-                print (f"[AVISO] se omite PC con sample_size=70000")
+            if algorithm == 'pc' and sample_size == 50000: # User had 70000 here, but sample_sizes don't include it. Assuming 50000 was intended.
+                print (f"[AVISO] se omite PC con sample_size=50000") # Adjusted message to reflect 50000
                 continue
-            # --- Expert knowledge: LENGUA_MATERNA_VICTIMA->ETNIA_VICTIMA permitido, ETNIA_VICTIMA->LENGUA_MATERNA_VICTIMA prohibido ---
-            expert_knowledge = None
-            enforce_expert_knowledge = False
+            
+            active_expert_knowledge = None
+            active_enforce_expert_knowledge = False
             if algorithm == 'pc':
-                expert_knowledge = ExpertKnowledge(
+                active_expert_knowledge = ExpertKnowledge(
                     required_edges=[
                         ('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')
                     ],
@@ -214,8 +214,27 @@ def main():
                         ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')
                     ]
                 )
-                enforce_expert_knowledge = True
-            print(f"\nAprendiendo estructura con {algorithm} with sample size = {sample_size}...")
+                active_enforce_expert_knowledge = True
+            
+            # Debugging for PC Pillai specifically for the failing case
+            if algorithm == 'pc' and score_method == 'pillai' and sample_size == 10000:
+                print("\\n--- DEBUG INFO FOR PC PILLAI (sample_size=10000) ---")
+                problematic_vars = ['ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA']
+                for var_name in problematic_vars:
+                    if var_name in df_to_sl.columns:
+                        print(f"Value counts for {var_name} in df_to_sl (shape: {df_to_sl.shape}):")
+                        print(df_to_sl[var_name].value_counts(dropna=False))
+                        print(f"Description for {var_name}:")
+                        print(df_to_sl[var_name].describe())
+                        print(f"Is {var_name} all NaN? {df_to_sl[var_name].isnull().all()}")
+                        print(f"Number of unique values for {var_name}: {df_to_sl[var_name].nunique()}")
+                    else:
+                        print(f"Variable {var_name} not in df_to_sl.columns")
+                print(f"Expert knowledge for this run: {active_expert_knowledge.rules if active_expert_knowledge else 'None'}")
+                print(f"Enforce expert knowledge: {active_enforce_expert_knowledge}")
+                print("--- END DEBUG INFO ---\\n")
+
+            print(f"\\nAprendiendo estructura con {algorithm} ({score_method}) with sample size = {sample_size}...")
             start_time = time.time()
             
             try:
@@ -223,9 +242,9 @@ def main():
                     df_to_sl,
                     algorithm=algorithm,
                     scoring_method=score_method,
-                    output_path=f'./models/model_structure_31_{algorithm}_{score_method}_{sample_size}.pkl',
-                    expert_knowledge=expert_knowledge,
-                    enforce_expert_knowledge=enforce_expert_knowledge
+                    # output_path=f'./models/model_structure_31_{algorithm}_{score_method}_{sample_size}.pkl', # User has this commented
+                    expert_knowledge=active_expert_knowledge,
+                    enforce_expert_knowledge=active_enforce_expert_knowledge
                 )
                 model_variables = set(var for edge in model.edges() for var in edge)
                 # Use train_df_encoded for calculating structure score
@@ -272,10 +291,12 @@ def main():
     now = datetime.now()
     timestamp_str = now.strftime("%Y%m%d_%H%M%S")
     
-    filename = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges_{len(best_model.edges())}_{timestamp_str}.pkl"
-    with open(filename, 'wb') as f:
-        pickle.dump(best_model, f)
-    print(f"\nEl mejor modelo ha sido guardado en: {filename}")
+    #Guardar mejor modelo
+    
+    # filename = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges_{len(best_model.edges())}_{timestamp_str}.pkl"
+    # with open(filename, 'wb') as f:
+    #     pickle.dump(best_model, f)
+    # print(f"\nEl mejor modelo ha sido guardado en: {filename}")
     
     # Guardar errores a CSV
     if errors:
@@ -286,11 +307,26 @@ def main():
     # Guardar imagen del best_model en la carpeta dag
     try:
         # Convertir el modelo a un grafo de networkx
-        nx_graph = best_model.to_networkx()
+        # nx_graph = best_model.to_networkx() # Original line causing AttributeError
+        
+        # Workaround: Manually create networkx.DiGraph
+        nx_graph = nx.DiGraph()
+        if hasattr(best_model, 'nodes') and hasattr(best_model, 'edges'):
+            nx_graph.add_nodes_from(best_model.nodes())
+            nx_graph.add_edges_from(best_model.edges())
+        else:
+            # This case should ideally not be reached if best_model is a valid pgmpy model
+            print("[ERROR] best_model object does not have nodes() or edges() methods.")
+            raise TypeError("best_model cannot be converted to a networkx graph.")
+
         # Crear el objeto pydot
         pydot_graph = to_pydot(nx_graph)
+        
+        # Ensure the ./dag directory exists
+        os.makedirs('./dag', exist_ok=True)
+        
         # Guardar como imagen PNG
-        pydot_graph.write_png('./dag/best_model.png')
+        pydot_graph.write_png('./dag/best_model_rb_classic.png')
         print('Imagen del best_model guardada en ./dag/best_model.png')
     except Exception as e:
         print(f'No se pudo guardar la imagen del modelo: {e}')
