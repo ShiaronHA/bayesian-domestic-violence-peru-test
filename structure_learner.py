@@ -128,7 +128,20 @@ def main():
     if os.path.exists(dtype_definitions_path):
         with open(dtype_definitions_path, 'r', encoding='utf-8') as f:
             dtype_definitions = json.load(f)
-
+    #
+    
+    # --- Re-aplicar dtypes categóricos a sample_data para asegurar el orden ---
+        for col_name, defs in dtype_definitions.items():
+            if col_name in train_df.columns:
+                try:
+                    cat_dtype = pd.CategoricalDtype(categories=defs['categories'], ordered=defs['ordered'])
+                    train_df[col_name] = train_df[col_name].astype(cat_dtype)
+                except Exception as e:
+                    print(f"[ADVERTENCIA] No se pudo convertir la columna {col_name} al CategoricalDtype especificado: {e}")
+                    print(f"  Categorías esperadas: {defs['categories']}")
+                    print(f"  Categorías encontradas en los datos: {list(train_df[col_name].unique()) if hasattr(train_df[col_name], 'unique') else 'N/A'}")
+        # --- Fin de la re-aplicación ---
+    
     algorithms_to_experiment = [
         ('hill_climb', 'bic-d'), 
         ('hill_climb', 'k2'),
