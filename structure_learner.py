@@ -153,7 +153,7 @@ def main():
         #('mmhc', 'bic'),
 	    #('mmhc', 'bdeu')
     ]
-    sample_sizes = [20000, 40000, 50000]  # Sample sizes to experiment wit
+    sample_sizes = [10000, 20000, 40000, 50000]
     results = []
     trained_models = {}
     expert_knowledge = {
@@ -201,7 +201,7 @@ def main():
                 df_to_sl=sample_data
                 
             # Validación: si es PC y sample_size == 50000, saltar este experimento    
-            if algorithm == 'pc' and sample_size == 70000:
+            if algorithm == 'pc' and sample_size == 50000:
                 print (f"[AVISO] se omite PC con sample_size=70000")
                 continue
             # --- Expert knowledge: LENGUA_MATERNA_VICTIMA->ETNIA_VICTIMA permitido, ETNIA_VICTIMA->LENGUA_MATERNA_VICTIMA prohibido ---
