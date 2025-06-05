@@ -9,6 +9,10 @@ from sentence_transformers import SentenceTransformer
 from scipy.cluster.hierarchy import linkage, fcluster
 import json
 
+for directory in ["models", "uploads", "datasets", "results", "plots", "data" ]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        
 # Define the input and output paths based on the project structure
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DATA_DIR = os.path.join(BASE_DIR, 'data', 'input_data')

@@ -146,14 +146,12 @@ def main():
         ('hill_climb', 'bic-d'), 
         ('hill_climb', 'k2'),
         ('hill_climb', 'bdeu'),
-        ('pc', 'pillai'),
+        ('pc', 'pillai')
         #('pc', 'chi_square'),
-	    ('GES','bic-d'),
-        ('GES', 'bic-cg')
-        #('mmhc', 'bic'),
-	    #('mmhc', 'bdeu')
+	    #('GES','bic-d'),
+        #('GES', 'bic-cg')
     ]
-    sample_sizes = [10000, 20000, 40000, 50000]
+    sample_sizes = [10000]#, 40000, 50000]
     results = []
     trained_models = {}
     expert_knowledge = {
@@ -307,8 +305,8 @@ def main():
     # Inferencia exacta
     
     #Las evidencias son val_df_encoded, extrae solo las columnas que se obtienen en markov_blanket
-    evidence = val_encoded[markov_blanket].iloc[0].to_dict()
-    print("Evidencia para la inferencia:", evidence)
+    # evidence = val_encoded[markov_blanket].iloc[0].to_dict()
+    # print("Evidencia para la inferencia:", evidence)
     
     
     #bayesian_inference(model_rb, evidence)
