@@ -13,7 +13,6 @@ from networkx.drawing.nx_pydot import to_pydot
 import networkx as nx
 from pgmpy.estimators import ExpertKnowledge
 import pandas as pd
-from pgmpy.metrics import structure_score
 import numpy as np
 from datetime import datetime
 
@@ -154,10 +153,11 @@ def main():
     sample_sizes = [10000]#, 40000, 50000]
     results = []
     trained_models = {}
-    expert_knowledge = {
-        'forbidden_edges': [],
-        'required_edges': [('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')]
-    }
+
+    expert_knowledge = ExpertKnowledge(
+    required_edges=[('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')],
+    forbidden_edges=[]
+    )
     for sample_size in sample_sizes:
         # Paso 1: obtener una muestra mínima que cubra todas las categorías
         df_sample_min = collect_all_categories(train_df)
