@@ -230,7 +230,11 @@ def main():
                         print(f"Number of unique values for {var_name}: {df_to_sl[var_name].nunique()}")
                     else:
                         print(f"Variable {var_name} not in df_to_sl.columns")
-                print(f"Expert knowledge for this run: {active_expert_knowledge.rules if active_expert_knowledge else 'None'}")
+                # print(f"Expert knowledge for this run: {active_expert_knowledge.rules if active_expert_knowledge else 'None'}") # Old line
+                if active_expert_knowledge:
+                    print(f"Expert knowledge for this run: Required Edges: {active_expert_knowledge.required_edges}, Forbidden Edges: {active_expert_knowledge.forbidden_edges}")
+                else:
+                    print("Expert knowledge for this run: None")
                 print(f"Enforce expert knowledge: {active_enforce_expert_knowledge}")
                 print("--- END DEBUG INFO ---\\n")
 
