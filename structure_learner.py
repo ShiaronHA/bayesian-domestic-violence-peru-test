@@ -69,9 +69,9 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                 # --- Expert knowledge for PC ---
                 model = est.estimate(
                     ci_test='pillai',
-                    max_cond_vars=5,
-                    expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
-                    enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
+                    max_cond_vars=5
+                    #expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
+                    #enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
                 )
             elif scoring_method == 'chi_square':
                 est = PC(df)
