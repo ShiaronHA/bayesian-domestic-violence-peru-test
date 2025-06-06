@@ -86,6 +86,8 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                     n_jobs=-1,
                     show_progress=True
                 )
+                
+            print("Edges encontrados:", model.edges())    
             bn_model = DiscreteBayesianNetwork(model.edges())
         elif algorithm == 'mmhc':
             print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
@@ -150,7 +152,7 @@ def main():
 	    #('GES','bic-d'),
         #('GES', 'bic-cg')
     ]
-    sample_sizes = [10000]#, 40000, 50000]
+    sample_sizes = [50000]#, 40000, 50000]
     results = []
     trained_models = {}
 
