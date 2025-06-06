@@ -548,6 +548,18 @@ def reduce_cardinality (df):
 
     df['NIVEL_EDUCATIVO_AGRESOR'] = df['NIVEL_EDUCATIVO_AGRESOR'].astype('category')
 
+    # D. EDAD_VICTIMA 
+    df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype(str)
+
+    df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].replace({
+        'INFANCIA': 'INFANCIA/ADULTO MAYOR',
+        'PRIMERA INFANCIA': 'INFANCIA/ADULTO MAYOR',
+        'ADULTO MAYOR': 'INFANCIA/ADULTO MAYOR'
+    })
+
+    df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype('category')
+    
+    
     return df
 
 def filter_cardinality(df):
@@ -630,13 +642,11 @@ def assign_dtypes(filepath):
         df.EDAD_VICTIMA = pd.Categorical(
             df.EDAD_VICTIMA,
             categories=[
-                'PRIMERA INFANCIA',
-                'INFANCIA',
+                'INFANCIA/ADULTO MAYOR',
                 'ADOLESCENCIA',
                 'JOVEN',
                 'ADULTO JOVEN',
-                'ADULTO',
-                'ADULTO MAYOR'
+                'ADULTO'
             ],
             ordered=True
         )
