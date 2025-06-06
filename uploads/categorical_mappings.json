@@ -6,13 +6,11 @@
         "3": "REINGRESO"
     },
     "EDAD_VICTIMA": {
-        "0": "PRIMERA INFANCIA",
-        "1": "INFANCIA",
-        "2": "ADOLESCENCIA",
-        "3": "JOVEN",
-        "4": "ADULTO JOVEN",
-        "5": "ADULTO",
-        "6": "ADULTO MAYOR"
+        "0": "INFANCIA/ADULTO MAYOR",
+        "1": "ADOLESCENCIA",
+        "2": "JOVEN",
+        "3": "ADULTO JOVEN",
+        "4": "ADULTO"
     },
     "LENGUA_MATERNA_VICTIMA": {
         "0": "AIMARA",
