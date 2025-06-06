@@ -69,9 +69,9 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                 # --- Expert knowledge for PC ---
                 model = est.estimate(
                     ci_test='pillai',
-                    max_cond_vars=5
-                    #expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
-                    #enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
+                    max_cond_vars=3, #5
+                    expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
+                    enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
                 )
             elif scoring_method == 'chi_square':
                 est = PC(df)
@@ -152,14 +152,15 @@ def main():
 	    #('GES','bic-d'),
         #('GES', 'bic-cg')
     ]
-    sample_sizes = [50000]#, 40000, 50000]
+    sample_sizes = [10000,20000]#, 40000, 50000]
     results = []
     trained_models = {}
 
-    expert_knowledge = ExpertKnowledge(
-    required_edges=[('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')],
-    forbidden_edges=[]
-    )
+    expert_knowledge = {
+        'forbidden_edges': [],
+        'required_edges': [('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')]
+    }
+    
     for sample_size in sample_sizes:
         # Paso 1: obtener una muestra mínima que cubra todas las categorías
         df_sample_min = collect_all_categories(train_df)
@@ -202,13 +203,13 @@ def main():
                 
             # Validación: si es PC y sample_size == 50000, saltar este experimento    
             if algorithm == 'pc' and sample_size == 100000: # User had 70000 here, but sample_sizes don't include it. Assuming 50000 was intended.
-                print (f"[AVISO] se omite PC con sample_size=50000") # Adjusted message to reflect 50000
+                print (f"[AVISO] se omite PC con sample_size=100000") # Adjusted message to reflect 50000
                 continue
             
-            active_expert_knowledge = None
-            active_enforce_expert_knowledge = False
+            expert_knowledge = None
+            enforce_expert_knowledge  = False
             if algorithm == 'pc':
-                active_expert_knowledge = ExpertKnowledge(
+                expert_knowledge  = ExpertKnowledge(
                     required_edges=[
                         ('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')
                     ],
@@ -216,29 +217,29 @@ def main():
                         ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')
                     ]
                 )
-                active_enforce_expert_knowledge = True
+                enforce_expert_knowledge = True
             
-            # Debugging for PC Pillai specifically for the failing case
-            if algorithm == 'pc' and score_method == 'pillai' and sample_size == 10000:
-                print("\\n--- DEBUG INFO FOR PC PILLAI (sample_size=10000) ---")
-                problematic_vars = ['ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA']
-                for var_name in problematic_vars:
-                    if var_name in df_to_sl.columns:
-                        print(f"Value counts for {var_name} in df_to_sl (shape: {df_to_sl.shape}):")
-                        print(df_to_sl[var_name].value_counts(dropna=False))
-                        print(f"Description for {var_name}:")
-                        print(df_to_sl[var_name].describe())
-                        print(f"Is {var_name} all NaN? {df_to_sl[var_name].isnull().all()}")
-                        print(f"Number of unique values for {var_name}: {df_to_sl[var_name].nunique()}")
-                    else:
-                        print(f"Variable {var_name} not in df_to_sl.columns")
-                # print(f"Expert knowledge for this run: {active_expert_knowledge.rules if active_expert_knowledge else 'None'}") # Old line
-                if active_expert_knowledge:
-                    print(f"Expert knowledge for this run: Required Edges: {active_expert_knowledge.required_edges}, Forbidden Edges: {active_expert_knowledge.forbidden_edges}")
-                else:
-                    print("Expert knowledge for this run: None")
-                print(f"Enforce expert knowledge: {active_enforce_expert_knowledge}")
-                print("--- END DEBUG INFO ---\\n")
+            # # Debugging for PC Pillai specifically for the failing case
+            # if algorithm == 'pc' and score_method == 'pillai' and sample_size == 10000:
+            #     print("\\n--- DEBUG INFO FOR PC PILLAI (sample_size=10000) ---")
+            #     problematic_vars = ['ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA']
+            #     for var_name in problematic_vars:
+            #         if var_name in df_to_sl.columns:
+            #             print(f"Value counts for {var_name} in df_to_sl (shape: {df_to_sl.shape}):")
+            #             print(df_to_sl[var_name].value_counts(dropna=False))
+            #             print(f"Description for {var_name}:")
+            #             print(df_to_sl[var_name].describe())
+            #             print(f"Is {var_name} all NaN? {df_to_sl[var_name].isnull().all()}")
+            #             print(f"Number of unique values for {var_name}: {df_to_sl[var_name].nunique()}")
+            #         else:
+            #             print(f"Variable {var_name} not in df_to_sl.columns")
+            #     # print(f"Expert knowledge for this run: {active_expert_knowledge.rules if active_expert_knowledge else 'None'}") # Old line
+            #     if active_expert_knowledge:
+            #         print(f"Expert knowledge for this run: Required Edges: {active_expert_knowledge.required_edges}, Forbidden Edges: {active_expert_knowledge.forbidden_edges}")
+            #     else:
+            #         print("Expert knowledge for this run: None")
+            #     print(f"Enforce expert knowledge: {active_enforce_expert_knowledge}")
+            #     print("--- END DEBUG INFO ---\\n")
 
             print(f"\\nAprendiendo estructura con {algorithm} ({score_method}) with sample size = {sample_size}...")
             start_time = time.time()
@@ -249,8 +250,8 @@ def main():
                     algorithm=algorithm,
                     scoring_method=score_method,
                     # output_path=f'./models/model_structure_31_{algorithm}_{score_method}_{sample_size}.pkl', # User has this commented
-                    expert_knowledge=active_expert_knowledge,
-                    enforce_expert_knowledge=active_enforce_expert_knowledge
+                    expert_knowledge=expert_knowledge,
+                    enforce_expert_knowledge=enforce_expert_knowledge
                 )
                 model_variables = set(var for edge in model.edges() for var in edge)
                 # Use train_df_encoded for calculating structure score
@@ -299,10 +300,10 @@ def main():
     
     #Guardar mejor modelo
     
-    # filename = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges_{len(best_model.edges())}_{timestamp_str}.pkl"
-    # with open(filename, 'wb') as f:
-    #     pickle.dump(best_model, f)
-    # print(f"\nEl mejor modelo ha sido guardado en: {filename}")
+    filename = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges_{len(best_model.edges())}_{timestamp_str}.pkl"
+    with open(filename, 'wb') as f:
+        pickle.dump(best_model, f)
+    print(f"\nEl mejor modelo ha sido guardado en: {filename}")
     
     # Guardar errores a CSV
     if errors:
