@@ -201,7 +201,7 @@ def main():
                 df_to_sl=sample_data
                 
             # Validación: si es PC y sample_size == 50000, saltar este experimento    
-            if algorithm == 'pc' and sample_size == 50000: # User had 70000 here, but sample_sizes don't include it. Assuming 50000 was intended.
+            if algorithm == 'pc' and sample_size == 100000: # User had 70000 here, but sample_sizes don't include it. Assuming 50000 was intended.
                 print (f"[AVISO] se omite PC con sample_size=50000") # Adjusted message to reflect 50000
                 continue
             
