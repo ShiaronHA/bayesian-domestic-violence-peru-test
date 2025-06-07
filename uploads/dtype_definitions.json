@@ -1,7 +1,6 @@
 {
     "CONDICION": {
         "categories": [
-            "CONTINUADOR",
             "NUEVO",
             "REINCIDENTE",
             "REINGRESO"
@@ -20,7 +19,6 @@
     },
     "LENGUA_MATERNA_VICTIMA": {
         "categories": [
-            "AIMARA",
             "CASTELLANO",
             "OTRAS",
             "QUECHUA"
@@ -29,12 +27,8 @@
     },
     "ETNIA_VICTIMA": {
         "categories": [
-            "AIMARA",
-            "BLANCO",
-            "INDIGENA",
+            "AIMARA/BLANCO/INDIGENA/NEGRO/OTRO",
             "MESTIZO",
-            "NEGRO/NO SABE",
-            "OTRO",
             "QUECHUA"
         ],
         "ordered": false
@@ -49,9 +43,8 @@
     "ESTADO_CIVIL_VICTIMA": {
         "categories": [
             "CASADO/A",
-            "DIVORCIADO/A",
             "SOLTERO/A",
-            "VIUDO/A"
+            "VIUDO/DIVORCIADO/A"
         ],
         "ordered": false
     },
@@ -63,8 +56,7 @@
             "SECUNDARIA INCOMPLETA",
             "SECUNDARIA COMPLETA",
             "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO",
-            "SUPERIOR TECNICO/UNIVERSITARIO COMPLETO",
-            "MAESTRIA / DOCTORADO"
+            "SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO"
         ],
         "ordered": true
     },
@@ -93,7 +85,6 @@
     },
     "EDAD_AGRESOR": {
         "categories": [
-            "INFANCIA",
             "ADOLESCENCIA",
             "JOVEN",
             "ADULTO JOVEN",
@@ -117,8 +108,7 @@
             "SECUNDARIA INCOMPLETA",
             "SECUNDARIA COMPLETA",
             "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO",
-            "SUPERIOR TECNICO/UNIVERSITARIO COMPLETO",
-            "MAESTRIA / DOCTORADO"
+            "SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO"
         ],
         "ordered": true
     },

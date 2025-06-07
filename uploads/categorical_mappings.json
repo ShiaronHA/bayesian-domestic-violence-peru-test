@@ -1,9 +1,8 @@
 {
     "CONDICION": {
-        "0": "CONTINUADOR",
-        "1": "NUEVO",
-        "2": "REINCIDENTE",
-        "3": "REINGRESO"
+        "0": "NUEVO",
+        "1": "REINCIDENTE",
+        "2": "REINGRESO"
     },
     "EDAD_VICTIMA": {
         "0": "INFANCIA/ADULTO MAYOR",
@@ -13,19 +12,14 @@
         "4": "ADULTO"
     },
     "LENGUA_MATERNA_VICTIMA": {
-        "0": "AIMARA",
-        "1": "CASTELLANO",
-        "2": "OTRAS",
-        "3": "QUECHUA"
+        "0": "CASTELLANO",
+        "1": "OTRAS",
+        "2": "QUECHUA"
     },
     "ETNIA_VICTIMA": {
-        "0": "AIMARA",
-        "1": "BLANCO",
-        "2": "INDIGENA",
-        "3": "MESTIZO",
-        "4": "NEGRO/NO SABE",
-        "5": "OTRO",
-        "6": "QUECHUA"
+        "0": "AIMARA/BLANCO/INDIGENA/NEGRO/OTRO",
+        "1": "MESTIZO",
+        "2": "QUECHUA"
     },
     "AREA_RESIDENCIA_DOMICILIO": {
         "0": "RURAL",
@@ -33,9 +27,8 @@
     },
     "ESTADO_CIVIL_VICTIMA": {
         "0": "CASADO/A",
-        "1": "DIVORCIADO/A",
-        "2": "SOLTERO/A",
-        "3": "VIUDO/A"
+        "1": "SOLTERO/A",
+        "2": "VIUDO/DIVORCIADO/A"
     },
     "NIVEL_EDUCATIVO_VICTIMA": {
         "0": "SIN NIVEL/INICIAL/BASICA ESPECIAL",
@@ -44,8 +37,7 @@
         "3": "SECUNDARIA INCOMPLETA",
         "4": "SECUNDARIA COMPLETA",
         "5": "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO",
-        "6": "SUPERIOR TECNICO/UNIVERSITARIO COMPLETO",
-        "7": "MAESTRIA / DOCTORADO"
+        "6": "SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO"
     },
     "TRABAJA_VICTIMA": {
         "0": "NO",
@@ -62,12 +54,11 @@
         "2": "SI"
     },
     "EDAD_AGRESOR": {
-        "0": "INFANCIA",
-        "1": "ADOLESCENCIA",
-        "2": "JOVEN",
-        "3": "ADULTO JOVEN",
-        "4": "ADULTO",
-        "5": "ADULTO MAYOR"
+        "0": "ADOLESCENCIA",
+        "1": "JOVEN",
+        "2": "ADULTO JOVEN",
+        "3": "ADULTO",
+        "4": "ADULTO MAYOR"
     },
     "SEXO_AGRESOR": {
         "0": "HOMBRE",
@@ -80,8 +71,7 @@
         "3": "SECUNDARIA INCOMPLETA",
         "4": "SECUNDARIA COMPLETA",
         "5": "SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO",
-        "6": "SUPERIOR TECNICO/UNIVERSITARIO COMPLETO",
-        "7": "MAESTRIA / DOCTORADO"
+        "6": "SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO"
     },
     "TRABAJA_AGRESOR": {
         "0": "NO",
