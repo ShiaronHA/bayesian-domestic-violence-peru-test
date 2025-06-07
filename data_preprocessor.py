@@ -8,6 +8,8 @@ import seaborn as sns
 from sentence_transformers import SentenceTransformer
 from scipy.cluster.hierarchy import linkage, fcluster
 import json
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import LocalOutlierFactor
 
 for directory in ["models", "uploads", "datasets", "results", "plots", "data" ]:
     if not os.path.exists(directory):
@@ -317,8 +319,11 @@ def clean_data_not_violence_and_mistakes(df):
     """Cleans data by removing cases not classified as domestic violence and other inconsistencies."""
     print("Starting specific data cleaning (not violence, mistakes)...")
 
+    #A. Eliminar CONDICION == 'DERIVADO' OR 'CONTINUADOR', No cambia el fenómeno de violencia, ni agresor.
     df.drop(df[df['CONDICION'] == 'DERIVADO'].index, inplace=True)
-    #Eliminar registros donde  df['DPTO_DOMICILIO'] + df['PROV_DOMICILIO'] + df['DIST_DOMICILIO'] == 999999
+    df.drop(df[df['CONDICION'] == 'CONTINUADOR'].index, inplace=True)
+    
+    #B. Eliminar registros donde  df['DPTO_DOMICILIO'] + df['PROV_DOMICILIO'] + df['DIST_DOMICILIO'] == 999999
     df = df[df['DPTO_DOMICILIO'] + df['PROV_DOMICILIO'] + df['DIST_DOMICILIO'] != '999999']
     
     return df
@@ -480,6 +485,122 @@ def preprocess_data(df):
     print(f"Filas eliminadas por contener valores nulos restantes: {initial_rows_before_dropna - df.shape[0]}")
     print (f'Nro de registros completos con {df.shape[1]} variables: {df.shape[0]}')
     
+    #4. Limpieza de outliers y ruido para EDAD_AGRESOR
+    if 'EDAD_AGRESOR' in df.columns:
+        print("Starting outlier treatment for EDAD_AGRESOR...")
+        # Ensure 'EDAD_AGRESOR' is numeric. Original data might be float or object.
+        # Coerce errors to NaN, which will be handled/dropped by outlier methods or explicitly.
+        df['EDAD_AGRESOR'] = pd.to_numeric(df['EDAD_AGRESOR'], errors='coerce')
+        
+        # Store original 'EDAD_AGRESOR' (numeric and non-NaN) for plotting before outlier removal
+        edad_agresor_original_for_plot = df['EDAD_AGRESOR'].dropna().copy()
+
+        # Handle cases where the column might be all NaNs after coercion or mostly NaNs
+        if edad_agresor_original_for_plot.empty:
+            print("EDAD_AGRESOR column is empty or all NaN after numeric conversion. Skipping outlier treatment.")
+        else:
+            # --- IQR Method ---
+            # Drop NaNs for IQR calculation if any survived or were introduced
+            edad_agresor_iqr_data = df['EDAD_AGRESOR'].dropna()
+            if not edad_agresor_iqr_data.empty:
+                Q1 = edad_agresor_iqr_data.quantile(0.25)
+                Q3 = edad_agresor_iqr_data.quantile(0.75)
+                IQR_value = Q3 - Q1
+                lower_bound_iqr = Q1 - 1.5 * IQR_value
+                upper_bound_iqr = Q3 + 1.5 * IQR_value
+                
+                # Get indices from the original DataFrame where EDAD_AGRESOR is an outlier
+                iqr_outliers_indices = df.index[
+                    (df['EDAD_AGRESOR'] < lower_bound_iqr) | (df['EDAD_AGRESOR'] > upper_bound_iqr)
+                ]
+                print(f"IQR: Found {len(iqr_outliers_indices)} outliers.")
+            else:
+                iqr_outliers_indices = pd.Index([])
+                print("IQR: No data for EDAD_AGRESOR after dropping NaNs.")
+
+            # --- LOF Method ---
+            # LOF requires a 2D array and no NaNs.
+            df_lof_subset = df[['EDAD_AGRESOR']].dropna()
+            if not df_lof_subset.empty and len(df_lof_subset) > 1 : # LOF needs more than 1 sample
+                scaler = StandardScaler()
+                # Ensure data is 2D for scaler
+                scaled_edad_agresor = scaler.fit_transform(df_lof_subset[['EDAD_AGRESOR']])
+                
+                # Adjust n_neighbors if less than 20 samples are available
+                n_neighbors_lof = min(20, len(df_lof_subset) - 1) if len(df_lof_subset) > 1 else 1
+                if n_neighbors_lof > 0:
+                    lof = LocalOutlierFactor(n_neighbors=n_neighbors_lof, contamination='auto')
+                    lof_predictions = lof.fit_predict(scaled_edad_agresor)
+                    
+                    # LOF returns -1 for outliers. Get original indices.
+                    lof_outliers_indices_relative = df_lof_subset[lof_predictions == -1].index
+                    # The indices from df_lof_subset are already original df indices because we did not reset_index
+                    lof_outliers_indices = lof_outliers_indices_relative
+                    print(f"LOF: Found {len(lof_outliers_indices)} outliers using n_neighbors={n_neighbors_lof}.")
+                else:
+                    lof_outliers_indices = pd.Index([])
+                    print("LOF: Not enough samples to apply LOF.")
+            else:
+                lof_outliers_indices = pd.Index([])
+                print("LOF: No data or not enough samples for EDAD_AGRESOR after dropping NaNs.")
+
+            # --- Find Common Outliers ---
+            common_outliers_indices = iqr_outliers_indices.intersection(lof_outliers_indices)
+            print(f"Found {len(common_outliers_indices)} common outliers using IQR and LOF.")
+
+            # --- Plotting ---
+            plt.figure(figsize=(12, 6))
+            plt.subplot(1, 2, 1)
+            if not edad_agresor_original_for_plot.empty:
+                sns.boxplot(y=edad_agresor_original_for_plot)
+                plt.title('EDAD_AGRESOR (Before Outlier Removal)')
+            else:
+                plt.title('EDAD_AGRESOR (Original - No Data)')
+            plt.ylabel('Edad Agresor')
+
+            if not common_outliers_indices.empty:
+                # --- Save Removed Outliers Info ---
+                removed_outliers_df = df.loc[common_outliers_indices, ['EDAD_AGRESOR']].copy()
+                removed_outliers_df.index.name = 'original_index'
+                # Use BASE_DIR for constructing path to 'uploads'
+                removed_outliers_csv_path = os.path.join(BASE_DIR, 'uploads', 'EDAD_AGRESOR_outliers_removed.csv')
+                removed_outliers_df.to_csv(removed_outliers_csv_path)
+                print(f"Saved details of removed outliers to {removed_outliers_csv_path}")
+
+                # Data after removing common outliers for the "after" plot
+                edad_agresor_after_removal = df.drop(index=common_outliers_indices)['EDAD_AGRESOR'].dropna()
+                
+                plt.subplot(1, 2, 2)
+                if not edad_agresor_after_removal.empty:
+                    sns.boxplot(y=edad_agresor_after_removal)
+                    plt.title('EDAD_AGRESOR (After Outlier Removal)')
+                else:
+                    plt.title('EDAD_AGRESOR (After - No Data Remaining)')
+                plt.ylabel('Edad Agresor')
+                
+                # --- Remove Outliers from DataFrame ---
+                df.drop(index=common_outliers_indices, inplace=True)
+                print(f"Removed {len(common_outliers_indices)} common outliers from the DataFrame.")
+            else:
+                print("No common outliers to remove.")
+                plt.subplot(1, 2, 2)
+                if not edad_agresor_original_for_plot.empty: # Show original data again if no removal
+                    sns.boxplot(y=edad_agresor_original_for_plot)
+                    plt.title('EDAD_AGRESOR (No Outliers Removed)')
+                else:
+                    plt.title('EDAD_AGRESOR (No Outliers Removed - No Data)')
+                plt.ylabel('Edad Agresor')
+            
+            plt.tight_layout()
+            plot_path = os.path.join(PLOTS_DIR, 'EDAD_AGRESOR_outliers.png')
+            plt.savefig(plot_path)
+            print(f"Box plot saved to {plot_path}")
+            plt.close() # Close the plot to free memory
+        
+        print("Finished outlier treatment for EDAD_AGRESOR.")
+    else:
+        print("Column 'EDAD_AGRESOR' not found, skipping outlier treatment.")
+    
     #4. Discretización de variables continuas
     ## Edad
     bins = [0, 6, 12, 18, 26, 36, 60, 121] 
@@ -494,10 +615,10 @@ def preprocess_data(df):
 def reduce_cardinality (df):
     
     # A. LENGUA_MATERNA_VICTIMA
-    top3 = ['CASTELLANO', 'QUECHUA', 'AIMARA']
-    # Reemplazar las clases que no están en top3 por 'OTRAS'
+    top2 = ['CASTELLANO', 'QUECHUA']
+    # Reemplazar las clases que no están en top2 por 'OTRAS'
     df['LENGUA_MATERNA_VICTIMA'] = df['LENGUA_MATERNA_VICTIMA'].apply(
-        lambda x: x if x in top3 else 'OTRAS'
+        lambda x: x if x in top2 else 'OTRAS'
     )
     df['LENGUA_MATERNA_VICTIMA'] = df['LENGUA_MATERNA_VICTIMA'].astype('category')
     
@@ -505,17 +626,20 @@ def reduce_cardinality (df):
     df['ETNIA_VICTIMA'] = df['ETNIA_VICTIMA'].astype(str)
 
     df['ETNIA_VICTIMA'] = df['ETNIA_VICTIMA'].replace({
-        'INDIGENA U ORIGINARIO DE LA AMAZONIA': 'INDIGENA',
-        'PERTENECIENTE O PARTE DE OTRO PUEBLO INDIGENA U ORIGINARIO': 'INDIGENA',
-        'NO SABE/NO RESPONDE': 'NEGRO/NO SABE',
-        'NEGRO, MORENO, ZAMBO, MULATO O AFRODESCENDIENTE O PARTE DEL PUEBLO AFROPERUANO':'NEGRO/NO SABE'
+        'AIMARA': 'AIMARA/BLANCO/INDIGENA/NEGRO/OTRO',
+        'BLANCO':'AIMARA/BLANCO/INDIGENA/NEGRO/OTRO',
+        'INDIGENA U ORIGINARIO DE LA AMAZONIA': 'AIMARA/BLANCO/INDIGENA/NEGRO/OTRO',
+        'PERTENECIENTE O PARTE DE OTRO PUEBLO INDIGENA U ORIGINARIO': 'AIMARA/BLANCO/INDIGENA/NEGRO/OTRO',
+        'NO SABE/NO RESPONDE': 'AIMARA/BLANCO/INDIGENA/NEGRO/OTRO',
+        'OTRO':'AIMARA/BLANCO/INDIGENA/NEGRO/OTRO',
+        'NEGRO, MORENO, ZAMBO, MULATO O AFRODESCENDIENTE O PARTE DEL PUEBLO AFROPERUANO':'AIMARA/BLANCO/INDIGENA/NEGRO/OTRO'
     })
 
     df['ETNIA_VICTIMA'] = df['ETNIA_VICTIMA'].astype('category')
     
-    # C. NIVEL_EDUCATIVO_VICTIMA
+    # C. NIVEL_EDUCATIVO_VICTIMA / NIVEL_EDUCATIVO_AGRESOR
 
-    #Reemplazar las clases 'SIN NIVEL', 'INICIAL', 'BASICA ESPECIAL' por 'SIN NIVEL/INICIAL/BASICA ESPECIAL'
+    # Reemplazar las clases 'SIN NIVEL', 'INICIAL', 'BASICA ESPECIAL' por 'SIN NIVEL/INICIAL/BASICA ESPECIAL'
     df['NIVEL_EDUCATIVO_VICTIMA'] = df['NIVEL_EDUCATIVO_VICTIMA'].astype(str)
 
     df['NIVEL_EDUCATIVO_VICTIMA'] = df['NIVEL_EDUCATIVO_VICTIMA'].replace({
@@ -524,16 +648,15 @@ def reduce_cardinality (df):
         'BASICA ESPECIAL': 'SIN NIVEL/INICIAL/BASICA ESPECIAL',
         'SUPERIOR TECNICO INCOMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
         'SUPERIOR UNIVERSITARIO INCOMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
-        'SUPERIOR TECNICO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
-        'SUPERIOR UNIVERSITARIO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
+        'SUPERIOR TECNICO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO',
+        'SUPERIOR UNIVERSITARIO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO',
+        'MAESTRIA / DOCTORADO':'SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO',
     })
-
     df['NIVEL_EDUCATIVO_VICTIMA'] = df['NIVEL_EDUCATIVO_VICTIMA'].astype('category')
     
-    #NIVEL_EDUCATIVO_AGRESOR
     df['NIVEL_EDUCATIVO_AGRESOR'].value_counts()
 
-    #Reemplazar las clases 'SIN NIVEL', 'INICIAL', 'BASICA ESPECIAL' por 'SIN NIVEL/INICIAL/BASICA ESPECIAL'
+    # Reemplazar las clases 'SIN NIVEL', 'INICIAL', 'BASICA ESPECIAL' por 'SIN NIVEL/INICIAL/BASICA ESPECIAL'
     df['NIVEL_EDUCATIVO_AGRESOR'] = df['NIVEL_EDUCATIVO_AGRESOR'].astype(str)
 
     df['NIVEL_EDUCATIVO_AGRESOR'] = df['NIVEL_EDUCATIVO_AGRESOR'].replace({
@@ -542,13 +665,25 @@ def reduce_cardinality (df):
         'BASICA ESPECIAL': 'SIN NIVEL/INICIAL/BASICA ESPECIAL',
         'SUPERIOR TECNICO INCOMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
         'SUPERIOR UNIVERSITARIO INCOMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
-        'SUPERIOR TECNICO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
-        'SUPERIOR UNIVERSITARIO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
+        'SUPERIOR TECNICO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO',
+        'SUPERIOR UNIVERSITARIO COMPLETO':'SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO',
+        'MAESTRIA / DOCTORADO':'SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO',
     })
 
     df['NIVEL_EDUCATIVO_AGRESOR'] = df['NIVEL_EDUCATIVO_AGRESOR'].astype('category')
+    
+    # D. ESTADO_CIVIL_VICTIMA
+    
+    df['ESTADO_CIVIL_VICTIMA'] = df['ESTADO_CIVIL_VICTIMA'].astype(str)
 
-    # D. EDAD_VICTIMA 
+    df['ESTADO_CIVIL_VICTIMA'] = df['ESTADO_CIVIL_VICTIMA'].replace({
+        'VIUDO/A': 'VIUDO/DIVORCIADO/A',
+        'DIVORCIADO/A':'VIUDO/DIVORCIADO/A'
+    })
+
+    df['ESTADO_CIVIL_VICTIMA'] = df['ESTADO_CIVIL_VICTIMA'].astype('category')
+
+    # E. EDAD_VICTIMA 
     df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype(str)
 
     df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].replace({
@@ -558,6 +693,17 @@ def reduce_cardinality (df):
     })
 
     df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype('category')
+    
+    # F. EDAD_AGRESOR 
+    # df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype(str)
+
+    # df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].replace({
+    #     'INFANCIA': 'INFANCIA/ADULTO MAYOR',
+    #     'PRIMERA INFANCIA': 'INFANCIA/ADULTO MAYOR',
+    #     'ADULTO MAYOR': 'INFANCIA/ADULTO MAYOR'
+    # })
+
+    # df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype('category')
     
     
     return df
@@ -625,8 +771,7 @@ def assign_dtypes(filepath):
                 'SECUNDARIA INCOMPLETA',
                 'SECUNDARIA COMPLETA',
                 'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
-                'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
-                'MAESTRIA / DOCTORADO'],
+                'SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO'],
             ordered=True)
         df.NIVEL_EDUCATIVO_AGRESOR = pd.Categorical(df.NIVEL_EDUCATIVO_AGRESOR,
             categories=[
@@ -636,8 +781,7 @@ def assign_dtypes(filepath):
                 'SECUNDARIA INCOMPLETA',
                 'SECUNDARIA COMPLETA',
                 'SUPERIOR TECNICO/UNIVERSITARIO INCOMPLETO',
-                'SUPERIOR TECNICO/UNIVERSITARIO COMPLETO',
-                'MAESTRIA / DOCTORADO'],
+                'SUPERIOR TECNICO/UNIVERSITARIO/POSTGRADO COMPLETO'],
             ordered=True)
         df.EDAD_VICTIMA = pd.Categorical(
             df.EDAD_VICTIMA,
@@ -653,7 +797,7 @@ def assign_dtypes(filepath):
         df.EDAD_AGRESOR = pd.Categorical(
             df.EDAD_AGRESOR,
             categories=[
-                'INFANCIA',
+                #'INFANCIA',
                 'ADOLESCENCIA',
                 'JOVEN',
                 'ADULTO JOVEN',
