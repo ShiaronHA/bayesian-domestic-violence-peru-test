@@ -462,6 +462,23 @@ def preprocess_data(df):
         df[main_type] = df[main_type].astype('category')
     df = df.drop(columns=all_subtype_cols, errors='ignore')
     
+    # Ensure TIPO_VIOLENCIA is string and normalized for reliable comparison
+    if 'TIPO_VIOLENCIA' in df.columns:
+        df['TIPO_VIOLENCIA'] = df['TIPO_VIOLENCIA'].astype(str)
+
+        # Update specific violence type columns based on TIPO_VIOLENCIA
+        df.loc[df['TIPO_VIOLENCIA'] == 'ECONOMICA O PATRIMONIAL', 'VIOLENCIA_ECONOMICA'] = 'SI'
+        df.loc[df['TIPO_VIOLENCIA'] == 'PSICOLOGICA', 'VIOLENCIA_PSICOLOGICA'] = 'SI'
+        df.loc[df['TIPO_VIOLENCIA'] == 'FISICA', 'VIOLENCIA_FISICA'] = 'SI'
+        df.loc[df['TIPO_VIOLENCIA'] == 'SEXUAL', 'VIOLENCIA_SEXUAL'] = 'SI'
+
+        # Ensure these columns are categorical after modification
+        for col_violence_type in ['VIOLENCIA_ECONOMICA', 'VIOLENCIA_PSICOLOGICA', 'VIOLENCIA_FISICA', 'VIOLENCIA_SEXUAL']:
+            if col_violence_type in df.columns:
+                df[col_violence_type] = df[col_violence_type].astype('category')
+    else:
+        print("Warning: 'TIPO_VIOLENCIA' column not found. Skipping violence type mapping.")
+
     ## G. Hijos a binaria
     if 'HIJAS_VIVAS' in df.columns and 'HIJOS_VIVOS' in df.columns:
         df['HIJOS_VIVIENTES'] = df.apply(lambda x: 'NO' if (x['HIJAS_VIVAS'] == 0.0 and x['HIJOS_VIVOS'] == 0.0) else 'SI', axis=1)
@@ -797,7 +814,7 @@ def assign_dtypes(filepath):
         df.EDAD_AGRESOR = pd.Categorical(
             df.EDAD_AGRESOR,
             categories=[
-                #'INFANCIA',
+                'INFANCIA',
                 'ADOLESCENCIA',
                 'JOVEN',
                 'ADULTO JOVEN',
