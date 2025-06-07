@@ -54,11 +54,12 @@
         "2": "SI"
     },
     "EDAD_AGRESOR": {
-        "0": "ADOLESCENCIA",
-        "1": "JOVEN",
-        "2": "ADULTO JOVEN",
-        "3": "ADULTO",
-        "4": "ADULTO MAYOR"
+        "0": "INFANCIA",
+        "1": "ADOLESCENCIA",
+        "2": "JOVEN",
+        "3": "ADULTO JOVEN",
+        "4": "ADULTO",
+        "5": "ADULTO MAYOR"
     },
     "SEXO_AGRESOR": {
         "0": "HOMBRE",

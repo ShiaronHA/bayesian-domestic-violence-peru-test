@@ -85,6 +85,7 @@
     },
     "EDAD_AGRESOR": {
         "categories": [
+            "INFANCIA",
             "ADOLESCENCIA",
             "JOVEN",
             "ADULTO JOVEN",
