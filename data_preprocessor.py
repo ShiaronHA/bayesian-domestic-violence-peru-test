@@ -99,6 +99,7 @@ def plot_categorical_unique_counts(df, top_n=50, save_path=None):
     """Generates and displays a bar plot of the top N categorical columns by unique value counts,
        and optionally saves it to a file."""
     categorical_columns = df.select_dtypes(include=['category']).columns
+    num_categorical_cols = len(categorical_columns)
     if categorical_columns.empty:
         print("No categorical columns found to plot.")
         return
@@ -115,9 +116,9 @@ def plot_categorical_unique_counts(df, top_n=50, save_path=None):
     plt.figure(figsize=(15, 8))
     sns.barplot(x=list(top_n_unique_value_counts.keys()), y=list(top_n_unique_value_counts.values()))
     plt.xticks(rotation=90)
-    plt.xlabel(f"Top {top_n} Categorical Columns (by unique values)")
+    plt.xlabel(f"{num_categorical_cols} Categorical Columns (by unique values)")
     plt.ylabel("Cantidad de valores únicos")
-    plt.title(f"Top {top_n} Cantidad de valores únicos por columna categórica")
+    plt.title(f"Cantidad de valores únicos por columna categórica ({num_categorical_cols} variables)")
     plt.tight_layout()
 
     if save_path:
