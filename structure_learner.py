@@ -21,7 +21,6 @@ from datetime import datetime
 # Usará solo el train...
 
 
-
 def collect_all_categories(df):
     """
     Devuelve un DataFrame con al menos una fila por cada categoría en cada columna categórica.
@@ -155,15 +154,18 @@ def main():
         # --- Fin de la re-aplicación ---
     
     algorithms_to_experiment = [
-        # ('hill_climb', 'bic-d'), 
-        # ('hill_climb', 'k2'),
-        # ('hill_climb', 'bdeu'),
+        ('hill_climb', 'bic-d'), 
+        ('hill_climb', 'k2'),
+        ('hill_climb', 'bdeu'),
         ('pc', 'pillai')
-        #('pc', 'chi_square'),
-	    #('GES','bic-d'),
-        #('GES', 'bic-cg')
+        ('pc', 'chi_square'),
+	    ('GES','bic-d'),
+        ('GES', 'bic-cg')
     ]
-    sample_sizes = [20000, 40000]#, 40000, 50000]
+    
+    size_df = train_df.shape[0]
+    
+    sample_sizes = [10000, 20000, 50000, 100000, 150000, 200000, size_df]
     results = []
     trained_models = {}
 
@@ -213,8 +215,8 @@ def main():
                 df_to_sl=sample_data
                 
             # Validación: si es PC y sample_size == 50000, saltar este experimento    
-            if algorithm == 'pc' and sample_size == 100000: # User had 70000 here, but sample_sizes don't include it. Assuming 50000 was intended.
-                print (f"[AVISO] se omite PC con sample_size=100000") # Adjusted message to reflect 50000
+            if algorithm == 'pc' and sample_size > 100000: 
+                print (f"[AVISO] se omite PC con sample_size>100000") # Adjusted message to reflect 50000
                 continue
             
             expert_knowledge = None
@@ -361,7 +363,7 @@ def main():
     # evidence = val_encoded[markov_blanket].iloc[0].to_dict()
     # print("Evidencia para la inferencia:", evidence)
     
-    
+
     #bayesian_inference(model_rb, evidence)
 
 if __name__ == "__main__":
