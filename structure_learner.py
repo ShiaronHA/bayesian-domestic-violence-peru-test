@@ -38,7 +38,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
         df.info()
         print("Forma de muestra del DataFrame:", df.shape)
         if algorithm == 'hill_climb':
-            print(f"\nAprendiendo con Hill Climbing usando {scoring_method}...")
+            print(f"\\nAprendiendo con Hill Climbing usando {scoring_method}...")
             est = HillClimbSearch(df)
             if scoring_method == 'bic':
                 model = est.estimate(scoring_method=BIC(df), max_iter=5000, max_indegree=5)
@@ -50,12 +50,16 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                 model = est.estimate(scoring_method=scoring_method, max_indegree=5, max_iter=int(1e4))
             else:
                 raise ValueError("Scoring method no soportado para Hill Climbing.")
-            bn_model = DiscreteBayesianNetwork(model.edges())
+            bn_model = DiscreteBayesianNetwork()
+            bn_model.add_nodes_from(df.columns)
+            bn_model.add_edges_from(model.edges())
         elif algorithm == 'GES': #Causal Discovery
             print(f"\\nAprendiendo con GES...")
             est = GES(df)
             model = est.estimate(scoring_method=scoring_method)
-            bn_model = DiscreteBayesianNetwork(model.edges())
+            bn_model = DiscreteBayesianNetwork()
+            bn_model.add_nodes_from(df.columns)
+            bn_model.add_edges_from(model.edges())
         elif algorithm == 'pc':
             print(f"\\nAprendiendo con PC...")
             est = PC(df) # Initialize PC estimator once
@@ -92,15 +96,18 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                 raise ValueError(f"Unsupported scoring_method '{scoring_method}' for PC algorithm.")
             
             if model is None:
-                print(f"PC algorithm with {scoring_method} resulted in no edges (all variables independent). Creating an empty network.")
+                print(f"PC algorithm with {scoring_method} resulted in no edges (all variables independent). Creating an empty network with all nodes.")
                 bn_model = DiscreteBayesianNetwork() # Create an empty network
+                bn_model.add_nodes_from(df.columns) # Add all columns as nodes
             else:
                 if not hasattr(model, 'edges'): # Defensive check
                      raise TypeError(f"Model returned by PC ({scoring_method}) is not a DAG object or similar (type: {type(model)}).")
                 print("Edges encontrados:", model.edges())    
-                bn_model = DiscreteBayesianNetwork(model.edges())
+                bn_model = DiscreteBayesianNetwork()
+                bn_model.add_nodes_from(df.columns)
+                bn_model.add_edges_from(model.edges())
         elif algorithm == 'mmhc':
-            print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
+            print("\\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
             mmhc = MmhcEstimator(df)
             print("\nAprendiendo con MMHC (1.skeleton)...")
             skeleton = mmhc.mmpc()
@@ -113,7 +120,9 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                 max_indegree=3,
                 max_iter=100
             )
-            bn_model = DiscreteBayesianNetwork(model.edges())
+            bn_model = DiscreteBayesianNetwork()
+            bn_model.add_nodes_from(df.columns)
+            bn_model.add_edges_from(model.edges())
         else:
             raise ValueError("Algoritmo no soportado.")
         print("Estructura aprendida:", bn_model.edges())
