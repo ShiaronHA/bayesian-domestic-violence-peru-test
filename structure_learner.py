@@ -69,7 +69,8 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                 # --- Expert knowledge for PC ---
                 model = est.estimate(
                     ci_test='pillai',
-                    max_cond_vars=3, #5
+                    max_cond_vars=5, 
+                    n_jobs=-1,
                     expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
                     enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
                 )
@@ -214,7 +215,6 @@ def main():
                         ('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')
                     ],
                     forbidden_edges=[
-                        ('LENGUA_MATERNA_VICTIMA', 'ETNIA_VICTIMA')
                     ]
                 )
                 enforce_expert_knowledge = True
