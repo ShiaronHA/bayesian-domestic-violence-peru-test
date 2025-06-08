@@ -144,9 +144,9 @@ def main():
         # --- Fin de la re-aplicación ---
     
     algorithms_to_experiment = [
-        ('hill_climb', 'bic-d'), 
-        ('hill_climb', 'k2'),
-        ('hill_climb', 'bdeu'),
+        # ('hill_climb', 'bic-d'), 
+        # ('hill_climb', 'k2'),
+        # ('hill_climb', 'bdeu'),
         ('pc', 'pillai')
         #('pc', 'chi_square'),
 	    #('GES','bic-d'),
