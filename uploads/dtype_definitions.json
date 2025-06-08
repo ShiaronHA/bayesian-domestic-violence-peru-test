@@ -9,11 +9,12 @@
     },
     "EDAD_VICTIMA": {
         "categories": [
-            "INFANCIA/ADULTO MAYOR",
+            "INFANCIA",
             "ADOLESCENCIA",
             "JOVEN",
             "ADULTO JOVEN",
-            "ADULTO"
+            "ADULTO",
+            "ADULTO MAYOR"
         ],
         "ordered": true
     },

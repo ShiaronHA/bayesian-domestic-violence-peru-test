@@ -5,11 +5,12 @@
         "2": "REINGRESO"
     },
     "EDAD_VICTIMA": {
-        "0": "INFANCIA/ADULTO MAYOR",
+        "0": "INFANCIA",
         "1": "ADOLESCENCIA",
         "2": "JOVEN",
         "3": "ADULTO JOVEN",
-        "4": "ADULTO"
+        "4": "ADULTO",
+        "5": "ADULTO MAYOR"
     },
     "LENGUA_MATERNA_VICTIMA": {
         "0": "CASTELLANO",
