@@ -152,7 +152,7 @@ def main():
 	    #('GES','bic-d'),
         #('GES', 'bic-cg')
     ]
-    sample_sizes = [10000,20000]#, 40000, 50000]
+    sample_sizes = [20000, 40000]#, 40000, 50000]
     results = []
     trained_models = {}
 
