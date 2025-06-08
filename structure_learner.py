@@ -53,33 +53,35 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                 raise ValueError("Scoring method no soportado para Hill Climbing.")
             bn_model = DiscreteBayesianNetwork(model.edges())
         elif algorithm == 'GES': #Causal Discovery
-            print(f"\nAprendiendo con GES...")
+            print(f"\\nAprendiendo con GES...")
             est = GES(df)
             model = est.estimate(scoring_method=scoring_method)
             bn_model = DiscreteBayesianNetwork(model.edges())
         elif algorithm == 'pc':
-            print(f"\nAprendiendo con PC...")
+            print(f"\\nAprendiendo con PC...")
+            est = PC(df) # Initialize PC estimator once
+
             if scoring_method == 'pillai':
                 assert not df.isnull().values.any(), "DataFrame contains NaN values"
                 assert np.isfinite(df.to_numpy()).all(), "DataFrame contains inf values"
                 # Validación: si hay columnas con baja varianza, eliminarlas
                 low_variance_cols = [col for col in df.columns if df[col].nunique() <= 1]
-                print(f"Low-variance columns: {low_variance_cols}")
-                est = PC(df)
+                if low_variance_cols:
+                    print(f"Warning: Low-variance columns found for PC with Pillai: {low_variance_cols}")
                 # --- Expert knowledge for PC ---
                 model = est.estimate(
                     ci_test='pillai',
+                    return_type='dag', # MODIFIED
                     max_cond_vars=5, 
                     n_jobs=-1,
                     expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
                     enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
                 )
             elif scoring_method == 'chi_square':
-                est = PC(df)
                 model = est.estimate(
                     variant='parallel',
                     ci_test='chi_square',
-                    return_type='pdag',
+                    return_type='dag', # MODIFIED from 'pdag'
                     significance_level=0.01,
                     max_cond_vars=3,
                     expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
@@ -87,9 +89,17 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                     n_jobs=-1,
                     show_progress=True
                 )
-                
-            print("Edges encontrados:", model.edges())    
-            bn_model = DiscreteBayesianNetwork(model.edges())
+            else:
+                raise ValueError(f"Unsupported scoring_method '{scoring_method}' for PC algorithm.")
+            
+            if model is None:
+                print(f"PC algorithm with {scoring_method} resulted in no edges (all variables independent). Creating an empty network.")
+                bn_model = DiscreteBayesianNetwork() # Create an empty network
+            else:
+                if not hasattr(model, 'edges'): # Defensive check
+                     raise TypeError(f"Model returned by PC ({scoring_method}) is not a DAG object or similar (type: {type(model)}).")
+                print("Edges encontrados:", model.edges())    
+                bn_model = DiscreteBayesianNetwork(model.edges())
         elif algorithm == 'mmhc':
             print("\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
             mmhc = MmhcEstimator(df)
