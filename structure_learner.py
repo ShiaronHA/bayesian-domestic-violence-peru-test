@@ -86,7 +86,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                     ci_test='chi_square',
                     return_type='dag', # MODIFIED from 'pdag'
                     significance_level=0.01,
-                    max_cond_vars=3,
+                    max_cond_vars=5,  #3
                     expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
                     enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False,
                     n_jobs=-1,
@@ -305,26 +305,50 @@ def main():
     results_structure_learning = pd.DataFrame(results)
     results_structure_learning = results_structure_learning.sort_values(by='BDeu_Score', ascending=False).reset_index(drop=True)
     
-    print("\nTabla comparativa de resultados:")
+    print("\\nTabla comparativa de resultados:")
     print(results_structure_learning.to_string(index=False))
     comparison_file_path = os.path.join('./results', 'resultados_rb_classic.csv')
     results_structure_learning.to_csv(comparison_file_path, index=False)
     print(f"Resultados guardados en: {comparison_file_path}")
-    best_row = results_structure_learning.sort_values(by='BDeu_Score', ascending=False).iloc[0]
-    best_model_key = f"{best_row['Algorithm']}_{best_row['Score_method']}_{int(best_row['Sample_Size'])}"
-    best_score = best_row['BDeu_Score']
-    best_model = trained_models[best_model_key]
     
-    # Obtener fecha y hora actual para el nombre del archivo
-    now = datetime.now()
-    timestamp_str = now.strftime("%Y%m%d_%H%M%S")
-    
-    #Guardar mejor modelo
-    
-    filename = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges_{len(best_model.edges())}_{timestamp_str}.pkl"
-    with open(filename, 'wb') as f:
-        pickle.dump(best_model, f)
-    print(f"\nEl mejor modelo ha sido guardado en: {filename}")
+    # --- Guardar el mejor modelo ---
+    if not results_structure_learning.empty:
+        best_row = results_structure_learning.iloc[0]
+        best_model_key = f"{best_row['Algorithm']}_{best_row['Score_method']}_{int(best_row['Sample_Size'])}"
+        best_score = best_row['BDeu_Score']
+        best_model_edges = len(trained_models[best_model_key].edges()) if best_model_key in trained_models and hasattr(trained_models[best_model_key], 'edges') else 'N/A'
+        best_model = trained_models[best_model_key]
+        
+        now = datetime.now()
+        timestamp_str = now.strftime("%Y%m%d_%H%M%S")
+        
+        filename_best = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges_{best_model_edges}_{timestamp_str}.pkl"
+        with open(filename_best, 'wb') as f:
+            pickle.dump(best_model, f)
+        print(f"\\nEl mejor modelo ha sido guardado en: {filename_best}")
+
+        # --- Guardar el segundo mejor modelo ---
+        if len(results_structure_learning) > 1:
+            second_best_row = results_structure_learning.iloc[1]
+            second_best_model_key = f"{second_best_row['Algorithm']}_{second_best_row['Score_method']}_{int(second_best_row['Sample_Size'])}"
+            second_best_score = second_best_row['BDeu_Score']
+            second_best_model_edges = len(trained_models[second_best_model_key].edges()) if second_best_model_key in trained_models and hasattr(trained_models[second_best_model_key], 'edges') else 'N/A'
+            second_best_model = trained_models[second_best_model_key]
+
+            filename_second_best = f"./models/segundo_mejor_modelo_{second_best_model_key}_bDeuScore{second_best_score:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
+            with open(filename_second_best, 'wb') as f:
+                pickle.dump(second_best_model, f)
+            print(f"El segundo mejor modelo ha sido guardado en: {filename_second_best}")
+            
+            # Assign best_model for subsequent operations like Markov blanket and image saving
+            # This ensures 'best_model' variable is correctly assigned even if only one model was trained.
+            # The original best_model assignment is kept for clarity for the top model.
+        else:
+            print("No hay un segundo mejor modelo para guardar.")
+            # best_model is already assigned from the top model if it exists
+    else:
+        print("[ADVERTENCIA] No se entrenaron modelos, no se puede guardar el mejor modelo ni el segundo mejor.")
+        best_model = None # Ensure best_model is None if no models were trained
     
     # Guardar errores a CSV
     if errors:
@@ -334,37 +358,45 @@ def main():
         
     # Guardar imagen del best_model en la carpeta dag
     try:
-        # Convertir el modelo a un grafo de networkx
-        # nx_graph = best_model.to_networkx() # Original line causing AttributeError
-        
-        # Workaround: Manually create networkx.DiGraph
-        nx_graph = nx.DiGraph()
-        if hasattr(best_model, 'nodes') and hasattr(best_model, 'edges'):
-            nx_graph.add_nodes_from(best_model.nodes())
-            nx_graph.add_edges_from(best_model.edges())
-        else:
-            # This case should ideally not be reached if best_model is a valid pgmpy model
-            print("[ERROR] best_model object does not have nodes() or edges() methods.")
-            raise TypeError("best_model cannot be converted to a networkx graph.")
+        if best_model: # Check if best_model is not None
+            # Convertir el modelo a un grafo de networkx
+            # nx_graph = best_model.to_networkx() # Original line causing AttributeError
+            
+            # Workaround: Manually create networkx.DiGraph
+            nx_graph = nx.DiGraph()
+            if hasattr(best_model, 'nodes') and hasattr(best_model, 'edges'):
+                nx_graph.add_nodes_from(best_model.nodes())
+                nx_graph.add_edges_from(best_model.edges())
+            else:
+                # This case should ideally not be reached if best_model is a valid pgmpy model
+                print("[ERROR] best_model object does not have nodes() or edges() methods.")
+                raise TypeError("best_model cannot be converted to a networkx graph.")
 
-        # Crear el objeto pydot
-        pydot_graph = to_pydot(nx_graph)
-        
-        # Ensure the ./dag directory exists
-        os.makedirs('./dag', exist_ok=True)
-        
-        # Guardar como imagen PNG
-        pydot_graph.write_png('./dag/best_model_rb_classic.png')
-        print('Imagen del best_model guardada en ./dag/best_model.png')
+            # Crear el objeto pydot
+            pydot_graph = to_pydot(nx_graph)
+            
+            # Ensure the ./dag directory exists
+            os.makedirs('./dag', exist_ok=True)
+            
+            # Guardar como imagen PNG
+            pydot_graph.write_png('./dag/best_model_rb_classic.png')
+            print('Imagen del best_model guardada en ./dag/best_model.png')
+        else:
+            print("[ADVERTENCIA] No se guardó imagen del modelo porque no se entrenó ningún modelo exitosamente.")
     except Exception as e:
         print(f'No se pudo guardar la imagen del modelo: {e}')
     
     
     #Markov
-    target_variable = 'NIVEL_DE_RIESGO_VICTIMA'
-    markov_blanket = best_model.get_markov_blanket(target_variable)
-    print(f"Markov Blanket de '{target_variable}':", markov_blanket)
-    
+    if best_model: # Check if best_model is not None
+        target_variable = 'NIVEL_DE_RIESGO_VICTIMA'
+        if target_variable in best_model.nodes():
+            markov_blanket = best_model.get_markov_blanket(target_variable)
+            print(f"Markov Blanket de '{target_variable}':", markov_blanket)
+        else:
+            print(f"[ADVERTENCIA] La variable '{target_variable}' no se encuentra en los nodos del mejor modelo. No se puede calcular el Markov Blanket.")
+    else:
+        print("[ADVERTENCIA] No se puede calcular el Markov Blanket porque no se entrenó ningún modelo exitosamente.")
     
     # Inferencia exacta
     
