@@ -211,6 +211,10 @@ def update_values_column(df, column):
                       'VIOLENCIA PSICOLOGICA':'PSICOLOGICA',
                       'VIOLENCIA FISICA':'FISICA',
                       'VIOLENCIA SEXUAL':'SEXUAL'}
+  elif column == 'FRECUENCIA_AGREDE':
+      replace_dict = {'INTE':'INTERMITENTE',
+                      'SE':'SEMANAL'
+      }
   else:
       return df
 
@@ -703,11 +707,11 @@ def reduce_cardinality (df):
     # E. EDAD_VICTIMA 
     df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype(str)
 
-    df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].replace({
-        'INFANCIA': 'INFANCIA/ADULTO MAYOR',
-        'PRIMERA INFANCIA': 'INFANCIA/ADULTO MAYOR',
-        'ADULTO MAYOR': 'INFANCIA/ADULTO MAYOR'
-    })
+    # df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].replace({
+    #     'INFANCIA': 'INFANCIA/ADULTO MAYOR',
+    #     'PRIMERA INFANCIA': 'INFANCIA/ADULTO MAYOR',
+    #     'ADULTO MAYOR': 'INFANCIA/ADULTO MAYOR'
+    # })
 
     df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype('category')
     
@@ -803,11 +807,12 @@ def assign_dtypes(filepath):
         df.EDAD_VICTIMA = pd.Categorical(
             df.EDAD_VICTIMA,
             categories=[
-                'INFANCIA/ADULTO MAYOR',
+                'INFANCIA',
                 'ADOLESCENCIA',
                 'JOVEN',
                 'ADULTO JOVEN',
-                'ADULTO'
+                'ADULTO',
+                'ADULTO MAYOR'
             ],
             ordered=True
         )
