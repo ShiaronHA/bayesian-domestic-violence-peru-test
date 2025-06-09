@@ -86,7 +86,8 @@ def bayesian_inference(model, evidences_df, variable_name):
 
 def main():
     
-    model_path = './models/mejor_modelo_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'           
+    model_path = './models/mejor_modelo_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'
+    model = 'hill_climb'           
     print(f"Cargando el modelo desde: {model_path}")
 
     # 1. Leemos los DataFrames de entrenamiento y validación
@@ -95,8 +96,14 @@ def main():
     val_encoded = pd.read_csv('./datasets/val_encoded.csv')
     val_df = pd.read_csv('./datasets/val_df.csv')
     print("DataFrames cargados correctamente.") 
+    
+    # 2. Borrar nas
+    print("\n[INFO] Conteo de NaNs en cada columna del DataFrame de entrenamiento:")
+    print(train_encoded.isna().sum())
+    train_encoded.dropna(inplace=True)
+    val_encoded.dropna(inplace=True)
 
-    # 2. Cargamos el mejor modelo aprendido en structure_learner.py
+    # 3. Cargamos el mejor modelo aprendido en structure_learner.py
 
     try:
         with open(model_path, 'rb') as f:
@@ -115,7 +122,7 @@ def main():
     #4. Evaluando modelo con Red Bayesiana
     print("\\nEvaluando el modelo con Red Bayesiana...")
     
-    target_variable = 'NIVEL_DE_RIESGO_VICTIMA' # Asegúrate que esta es tu variable objetivo
+    target_variable = 'NIVEL_DE_RIESGO_VICTIMA' #Variable objetivo
     
     try:
         markov_blanket = model_rb.get_markov_blanket(target_variable)
@@ -164,7 +171,6 @@ def main():
     output_dir = './results'
     
     # Predicciones
-    #y_train_pred = rf_model.predict(X_train)
     # Convertir all_results en una lista de valores planos
     y_val_pred = [res[target_variable] if isinstance(res, dict) and target_variable in res else None for res in all_results]
 
@@ -193,7 +199,7 @@ def main():
 
     # Guardar métricas en CSV
     metrics_df = pd.DataFrame([val_metrics])
-    metrics_file_path = os.path.join(output_dir, 'metrics_rb_classic.csv')
+    metrics_file_path = os.path.join(output_dir, f'metrics_rb_classic_{model}.csv')
     metrics_df.to_csv(metrics_file_path, index=False)
     print(f"\nMétricas guardadas en: {metrics_file_path}")
 
@@ -204,14 +210,14 @@ def main():
     plt.title('Matriz de Confusión - Validación')
     plt.xlabel('Predicción')
     plt.ylabel('Real')
-    conf_matrix_file_path = os.path.join('./plots', 'confusion_matrix_rb_classic.png')
+    conf_matrix_file_path = os.path.join('./plots', f'confusion_matrix_rb_classic_{model}.png')
     plt.savefig(conf_matrix_file_path)
     plt.close()
     print(f"Matriz de confusión guardada en: {conf_matrix_file_path}")
 
     # Guardar reporte de clasificación como texto
     class_report = classification_report(y_val, y_val_pred)
-    report_path = os.path.join(output_dir, 'classification_report_rb_classic.txt')
+    report_path = os.path.join(output_dir, f'classification_report_rb_classic_{model}.txt')
     with open(report_path, 'w') as f:
         f.write(class_report)
     print(f"Reporte de clasificación guardado en: {report_path}")
