@@ -808,7 +808,7 @@ def assign_dtypes(filepath):
         df.EDAD_VICTIMA = pd.Categorical(
             df.EDAD_VICTIMA,
             categories=[
-                'PRIMERA INFANCIA'
+                'PRIMERA INFANCIA',
                 'INFANCIA',
                 'ADOLESCENCIA',
                 'JOVEN',
