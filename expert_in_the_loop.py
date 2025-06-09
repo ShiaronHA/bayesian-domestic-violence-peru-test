@@ -59,7 +59,7 @@ def main():
     
     # 2. Aprendemos DAG con LLM
     descriptions = {
-    "CONDICION": "Condición del caso de violencia reportado, como: nuevo, continuador, reincidente, reingreso.",
+    "CONDICION": "Condición del caso de violencia reportado, como: nuevo, reincidente (Cuando el acto ocurre nuevamente por el mismo agresor), reingreso (Cuando el acto ocurre por una persona agresora diferente a la primera vez).",
     "EDAD_VICTIMA": "El grupo etario de la victima",
     "LENGUA_MATERNA_VICTIMA": "Idioma o lengua materna de la victima con el que aprendió a hablar en su niñez.",
     "ETNIA_VICTIMA": "Como se identifica la victima en términos de raza, etnia o cultura, basado en sus costumbres y antepasados.",
@@ -81,7 +81,7 @@ def main():
     "ESTADO_VICTIMA_U_A":"Estado de la victima en la última agresión",
     "ESTADO_VICTIMA_G":"Estado de la persona usuaria generalmente",
     "REDES_FAM_SOC":"¿Cuenta con redes familiares o sociales?",
-    "NIVEL_VIOLENCIA_DISTRITO":"Valoración del nivel de violencia en el distrito donde vive la victima",
+    "NIVEL_VIOLENCIA_DISTRITO":"Valoración del nivel de violencia en el distrito donde vive la victima, es la clasificacion del ratio de casos de violencia reportados en el distrito con respecto a la población total del distrito.",
     "SEGURO_VICTIMA":"¿Cuenta con algún tipo de seguro?",
     "TRATAMIENTO_VICTIMA":"¿Recibe actualmente algún tipo de tratamiento psicológico la victima?",
     "VINCULO_AFECTIVO":"'¿Tiene vínculos afectivos positivos la victima?",
@@ -93,7 +93,7 @@ def main():
     }
 
     estimator = ExpertInLoop(train_df_for_eil) # Use the NaN-dropped version
-    dag = estimator.estimate(pval_threshold=0.03,
+    dag = estimator.estimate(pval_threshold=0.05, #0.03
                             effect_size_threshold=0.0001, 
                             variable_descriptions=descriptions,
                             use_llm=True,
@@ -108,6 +108,8 @@ def main():
     
     #Evaluación del DAG aprendido
     print("\nEvaluando el DAG aprendido...")
+    
+    
     
         
 if __name__ == "__main__":
