@@ -832,7 +832,7 @@ def assign_dtypes(filepath):
         )
         df.FRECUENCIA_AGREDE = pd.Categorical(
             df.FRECUENCIA_AGREDE,
-            categories=['DIARIO','MENSUAL','QUINCENAL', 'SEMANAL', 'INTERMITENTE', 'DIARIO'],
+            categories=['INTERMITENTE','MENSUAL','QUINCENAL','SEMANAL','DIARIO'],
             ordered=True
         )
         df.NIVEL_DE_RIESGO_VICTIMA = pd.Categorical(
