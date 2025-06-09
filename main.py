@@ -205,7 +205,8 @@ def metrics_to_dataframe(y_val, y_val_pred, type_inference, model, output_dir='.
     
 def main():
     
-    model_path = './models/mejor_modelo_hill_climb_bdeu_20000_bDeuScore-5855502.80_edges_72_20250606_084240.pkl'   
+    #model_path = './models/mejor_modelo_hill_climb_bdeu_20000_bDeuScore-5855502.80_edges_72_20250606_084240.pkl'   
+    model_path = './models/mejor_modelo_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'
     model = 'hill_climb'        
     print(f"Cargando el modelo desde: {model_path}")
 
