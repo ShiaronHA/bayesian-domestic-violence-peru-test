@@ -48,8 +48,8 @@ def learn_with_random_forest(train, target_col, val, output_dir='./results'):
     # Selección de características usando RandomForest
     X_train, X_val = feature_selection(train, X_val, target_col)
 
-    print(f"Forma de X_train_lasso: {X_train.shape}, y_train: {y_train.shape}")
-    print(f"Forma de X_val_lasso: {X_val.shape}, y_val: {y_val.shape}")
+    print(f"Forma de X_train: {X_train.shape}, y_train: {y_train.shape}")
+    print(f"Forma de X_val: {X_val.shape}, y_val: {y_val.shape}")
 
     # Entrenar modelo
     rf_model = RandomForestClassifier(random_state=42)
@@ -120,7 +120,10 @@ def main():
     train_encoded = pd.read_csv('./datasets/train_encoded.csv')
     val_encoded = pd.read_csv('./datasets/val_encoded.csv')
     print("DataFrames cargados correctamente.")
-
+    #Eliminar datos nulos
+    train_encoded.dropna(inplace=True)
+    val_encoded.dropna(inplace=True)
+    
     train_encoded.info()
 
     # 2. Entrenamos el modelo Random Forest con los datos de entrenamiento

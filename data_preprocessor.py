@@ -808,6 +808,7 @@ def assign_dtypes(filepath):
         df.EDAD_VICTIMA = pd.Categorical(
             df.EDAD_VICTIMA,
             categories=[
+                'PRIMERA INFANCIA'
                 'INFANCIA',
                 'ADOLESCENCIA',
                 'JOVEN',
@@ -831,7 +832,7 @@ def assign_dtypes(filepath):
         )
         df.FRECUENCIA_AGREDE = pd.Categorical(
             df.FRECUENCIA_AGREDE,
-            categories=['MENSUAL', 'QUINCENAL', 'SEMANAL', 'INTERMITENTE', 'DIARIO'],
+            categories=['DIARIO','MENSUAL','QUINCENAL', 'SEMANAL', 'INTERMITENTE', 'DIARIO'],
             ordered=True
         )
         df.NIVEL_DE_RIESGO_VICTIMA = pd.Categorical(
@@ -933,6 +934,13 @@ def main():
         # 4. Save the fully processed DataFrame
         output_file_path = os.path.join(OUTPUT_DATA_DIR, 'df_full_processed.csv')
         try:
+            # --- Print NaN counts before saving ---
+            print("\nNaN counts per column before saving df_full_processed.csv:")
+            nan_counts = combined_df.isnull().sum()
+            print(nan_counts[nan_counts > 0].to_string() if not nan_counts[nan_counts > 0].empty else "No NaNs found.")
+            print("--- End of NaN counts ---\n")
+            # --- End of print NaN counts ---
+            
             combined_df.to_csv(output_file_path, index=False)
             print(f"Successfully saved fully processed data to: {output_file_path}")
         except Exception as e:
