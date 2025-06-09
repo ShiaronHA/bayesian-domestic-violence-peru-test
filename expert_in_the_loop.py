@@ -42,6 +42,21 @@ def main():
     
     train_df.info()
     
+    # Attempt to resolve XGBoost ValueError by removing rows with any NaNs
+    # This is a test to see if residual NaNs are causing .cat.codes to be -1
+    original_rows = len(train_df)
+
+    #Imprime cuantos NaNs hay en cada columna
+    print("\n[INFO] Conteo de NaNs en cada columna del DataFrame de entrenamiento:")
+    print(train_df.isna().sum())
+    # Elimina filas con NaNs
+    train_df_for_eil = train_df.dropna()
+    dropped_rows = original_rows - len(train_df_for_eil)
+    
+    if dropped_rows > 0:
+        print(f"[INFO] Dropped {dropped_rows} rows from train_df due to NaNs before passing to ExpertInLoop.")
+
+    
     # 2. Aprendemos DAG con LLM
     descriptions = {
     "CONDICION": "Condición del caso de violencia reportado, como: nuevo, continuador, reincidente, reingreso.",
@@ -77,9 +92,9 @@ def main():
     "HIJOS_VIVIENTES": "¿La victima tiene hijos vivientes?"
     }
 
-    estimator = ExpertInLoop(train_df)
+    estimator = ExpertInLoop(train_df_for_eil) # Use the NaN-dropped version
     dag = estimator.estimate(pval_threshold=0.03,
-                            effect_size_threshold=0.0001, #Acepta relaciones mas debiles
+                            effect_size_threshold=0.0001, 
                             variable_descriptions=descriptions,
                             use_llm=True,
                             llm_model="gemini/gemini-1.5-flash")

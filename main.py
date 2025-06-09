@@ -86,7 +86,7 @@ def bayesian_inference(model, evidences_df, variable_name):
 
 def main():
     
-    model_path = './models/mejor_modelo_hill_climb_bdeu_20000_bDeuScore-5855502.80_edges_72_20250606_084240.pkl'           #Cambiar esta ruta
+    model_path = './models/mejor_modelo_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'           
     print(f"Cargando el modelo desde: {model_path}")
 
     # 1. Leemos los DataFrames de entrenamiento y validación
@@ -97,8 +97,6 @@ def main():
     print("DataFrames cargados correctamente.") 
 
     # 2. Cargamos el mejor modelo aprendido en structure_learner.py
-
-    
 
     try:
         with open(model_path, 'rb') as f:
