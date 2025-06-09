@@ -36,7 +36,7 @@ def parameter_learning(model, df):
 
 # --- Inferencia exacta ---
 def bayesian_inference_exact(model, evidences_df, variable_name):
-    print("\\nRealizando inferencia exacta para múltiples casos...")
+    print("\\\\nRealizando inferencia exacta para múltiples casos...")
     belief_propagation = BeliefPropagation(model)
     print("Calibrando Belief Propagation...")
     try:
@@ -52,28 +52,39 @@ def bayesian_inference_exact(model, evidences_df, variable_name):
         return [error_result]
 
     all_results = []
-    # You can adjust this number based on your system's memory
-    max_predictions_to_attempt =  7# Reduced from 1000
-    num_predictions = min(max_predictions_to_attempt, evidences_df.shape[0])
+    total_max_predictions = 1000  # Límite superior de predicciones a intentar
+    batch_size = 7
     
-    print(f"Realizando inferencia para {num_predictions} casos (de un máximo de {max_predictions_to_attempt} intentados por ejecución)...")
+    num_total_to_process = min(total_max_predictions, evidences_df.shape[0])
+    
+    print(f"Realizando inferencia para un total de {num_total_to_process} casos, en lotes de hasta {batch_size}...")
 
-    for i in range(num_predictions):
-        evidence_dict = evidences_df.iloc[i].to_dict()
-        # Asegurar que los valores de evidencia sean del tipo correcto si es necesario
-        for k, v in evidence_dict.items():
-            if isinstance(v, float) and v.is_integer():
-                evidence_dict[k] = int(v)
+    for batch_start_idx in range(0, num_total_to_process, batch_size):
+        batch_end_idx = min(batch_start_idx + batch_size, num_total_to_process)
+        current_batch_df = evidences_df.iloc[batch_start_idx:batch_end_idx]
+        
+        if current_batch_df.empty:
+            continue
 
-        print(f"  Caso {i+1}/{num_predictions} - Evidencia: {evidence_dict}") # Descomentar para debugging detallado
-        try:
-            result = belief_propagation.map_query(variables=[variable_name], evidence=evidence_dict)
-            # Convertir tipos de numpy a tipos estándar de Python para serialización JSON
-            processed_result = {k_res: int(v_res) if hasattr(v_res, 'item') else v_res for k_res, v_res in result.items()}
-            all_results.append(processed_result)
-        except Exception as e:
-            print(f"  [ERROR] Error al procesar caso {i+1} con evidencia {evidence_dict}: {e}")
-            all_results.append({"error": str(e), "evidence_case_number": i+1, "evidence_provided": evidence_dict})
+        print(f"  Procesando lote: casos {batch_start_idx + 1} a {batch_end_idx} (de {num_total_to_process} en total)...")
+
+        for i in range(current_batch_df.shape[0]):
+            actual_case_index_in_original_df = batch_start_idx + i
+            evidence_dict = current_batch_df.iloc[i].to_dict()
+            # Asegurar que los valores de evidencia sean del tipo correcto si es necesario
+            for k, v in evidence_dict.items():
+                if isinstance(v, float) and v.is_integer():
+                    evidence_dict[k] = int(v)
+
+            print(f"    Caso {actual_case_index_in_original_df + 1}/{num_total_to_process} - Evidencia: {evidence_dict}")
+            try:
+                result = belief_propagation.map_query(variables=[variable_name], evidence=evidence_dict)
+                # Convertir tipos de numpy a tipos estándar de Python para serialización JSON
+                processed_result = {k_res: int(v_res) if hasattr(v_res, 'item') else v_res for k_res, v_res in result.items()}
+                all_results.append(processed_result)
+            except Exception as e:
+                print(f"    [ERROR] Error al procesar caso {actual_case_index_in_original_df + 1} con evidencia {evidence_dict}: {e}")
+                all_results.append({"error": str(e), "evidence_case_number": actual_case_index_in_original_df + 1, "evidence_provided": evidence_dict})
 
     result_file_path = os.path.join('./results', 'inferencia_exact_rb_ypred_batch.json')
     try:
@@ -89,64 +100,76 @@ def bayesian_inference_exact(model, evidences_df, variable_name):
 #Inferencia aproximada con Variational Inference, gibbs sampling
 
 def bayesian_inference_approximate(model, evidences_df, variable_name, n_samples=1000, seed=None):
-    print("\\nRealizando inferencia aproximada con Gibbs Sampling para múltiples casos...")
+    print("\\\\nRealizando inferencia aproximada con Gibbs Sampling para múltiples casos...")
     gibbs_sampler = GibbsSampling(model)
     
     all_results = []
-    # Consistent with bayesian_inference_exact or make it a parameter
-    max_predictions_to_attempt = 10 #probando 
-    num_predictions = min(max_predictions_to_attempt, evidences_df.shape[0])
+    total_max_predictions = 1000  # Límite superior de predicciones a intentar
+    batch_size = 7
     
-    print(f"Realizando inferencia aproximada para {num_predictions} casos (de un máximo de {max_predictions_to_attempt} intentados por ejecución)...")
+    num_total_to_process = min(total_max_predictions, evidences_df.shape[0])
+        
+    print(f"Realizando inferencia aproximada para un total de {num_total_to_process} casos, en lotes de hasta {batch_size} (muestras por caso: {n_samples})...")
 
-    for i in range(num_predictions):
-        evidence_dict = evidences_df.iloc[i].to_dict()
-        # Asegurar que los valores de evidencia sean del tipo correcto
-        for k, v in evidence_dict.items():
-            if pd.isna(v): # Remove NaN values from evidence, as pgmpy might not handle them
-                del evidence_dict[k]
-                continue
-            if isinstance(v, float) and v.is_integer():
-                evidence_dict[k] = int(v)
-            # Ensure states are compatible with the model (e.g. if model expects int, convert)
-            # This might need further refinement based on how data was encoded and model learned
-            # For now, int conversion for float-integers is a basic step.
+    for batch_start_idx in range(0, num_total_to_process, batch_size):
+        batch_end_idx = min(batch_start_idx + batch_size, num_total_to_process)
+        current_batch_df = evidences_df.iloc[batch_start_idx:batch_end_idx]
 
-        print(f"  Caso {i+1}/{num_predictions} - Evidencia: {evidence_dict}")
-        try:
-            # Perform sampling using GibbsSampling
-            samples_df = gibbs_sampler.sample(evidence=evidence_dict, size=n_samples, seed=seed, show_progress=True)
+        if current_batch_df.empty:
+            continue
             
-            if variable_name in samples_df.columns:
-                # Calculate mode of the target variable column from the samples
-                predicted_value_series = samples_df[variable_name].mode()
+        print(f"  Procesando lote (aproximado): casos {batch_start_idx + 1} a {batch_end_idx} (de {num_total_to_process} en total)...")
+
+        for i in range(current_batch_df.shape[0]):
+            actual_case_index_in_original_df = batch_start_idx + i
+            evidence_dict = current_batch_df.iloc[i].to_dict()
+            # Asegurar que los valores de evidencia sean del tipo correcto
+            keys_to_delete = [] # Para evitar modificar el diccionario mientras se itera
+            for k, v in evidence_dict.items():
+                if pd.isna(v): # Remove NaN values from evidence
+                    keys_to_delete.append(k)
+                    continue
+                if isinstance(v, float) and v.is_integer():
+                    evidence_dict[k] = int(v)
+            for k_del in keys_to_delete:
+                del evidence_dict[k_del]
+            
+            print(f"    Caso {actual_case_index_in_original_df + 1}/{num_total_to_process} - Evidencia (aprox): {evidence_dict}")
+            try:
+                # Perform sampling using GibbsSampling
+                # Set show_progress=False for less verbose output during batch processing
+                samples_df = gibbs_sampler.sample(evidence=evidence_dict, size=n_samples, seed=seed, show_progress=False) 
                 
-                if not predicted_value_series.empty:
-                    # mode() can return multiple values if they have the same frequency. Take the first.
-                    result_value = predicted_value_series[0] 
+                if variable_name in samples_df.columns:
+                    # Calculate mode of the target variable column from the samples
+                    predicted_value_series = samples_df[variable_name].mode()
                     
-                    # Ensure it's a standard Python type for JSON serialization
-                    if hasattr(result_value, 'item'): # Handles numpy types like numpy.int64
-                        result_value = result_value.item()
-                    all_results.append({variable_name: result_value})
+                    if not predicted_value_series.empty:
+                        # mode() can return multiple values if they have the same frequency. Take the first.
+                        result_value = predicted_value_series[0] 
+                        
+                        # Ensure it's a standard Python type for JSON serialization
+                        if hasattr(result_value, 'item'): # Handles numpy types like numpy.int64
+                            result_value = result_value.item()
+                        all_results.append({variable_name: result_value})
+                    else:
+                        print(f"    [ADVERTENCIA] No se pudo determinar el modo para '{variable_name}' en el caso {actual_case_index_in_original_df + 1}. La serie de modos está vacía.")
+                        all_results.append({
+                            "error": f"No mode found for {variable_name} (empty mode series)", 
+                            "evidence_case_number": actual_case_index_in_original_df + 1, 
+                            "evidence_provided": evidence_dict
+                        })
                 else:
-                    print(f"  [ADVERTENCIA] No se pudo determinar el modo para '{variable_name}' en el caso {i+1}. La serie de modos está vacía.")
+                    print(f"    [ERROR] La variable '{variable_name}' no se encontró en las muestras generadas para el caso {actual_case_index_in_original_df + 1}.")
                     all_results.append({
-                        "error": f"No mode found for {variable_name} (empty mode series)", 
-                        "evidence_case_number": i+1, 
+                        "error": f"Variable {variable_name} not in generated samples", 
+                        "evidence_case_number": actual_case_index_in_original_df + 1, 
                         "evidence_provided": evidence_dict
                     })
-            else:
-                print(f"  [ERROR] La variable '{variable_name}' no se encontró en las muestras generadas para el caso {i+1}.")
-                all_results.append({
-                    "error": f"Variable {variable_name} not in generated samples", 
-                    "evidence_case_number": i+1, 
-                    "evidence_provided": evidence_dict
-                })
 
-        except Exception as e:
-            print(f"  [ERROR] Error al procesar caso {i+1} con evidencia {evidence_dict} usando Gibbs Sampling: {e}")
-            all_results.append({"error": str(e), "evidence_case_number": i+1, "evidence_provided": evidence_dict})
+            except Exception as e:
+                print(f"    [ERROR] Error al procesar caso {actual_case_index_in_original_df + 1} con evidencia {evidence_dict} usando Gibbs Sampling: {e}")
+                all_results.append({"error": str(e), "evidence_case_number": actual_case_index_in_original_df + 1, "evidence_provided": evidence_dict})
 
     result_file_path = os.path.join('./results', 'inferencia_approx_gibbs_ypred_batch.json')
     try:
