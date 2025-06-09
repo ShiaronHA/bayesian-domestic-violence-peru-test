@@ -120,7 +120,11 @@ def main():
     train_encoded = pd.read_csv('./datasets/train_encoded.csv')
     val_encoded = pd.read_csv('./datasets/val_encoded.csv')
     print("DataFrames cargados correctamente.")
+    
     #Eliminar datos nulos
+    print("\n[INFO] Conteo de NaNs en cada columna del DataFrame de entrenamiento:")
+    print(train_encoded.isna().sum())
+    
     train_encoded.dropna(inplace=True)
     val_encoded.dropna(inplace=True)
     
