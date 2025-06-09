@@ -9,6 +9,7 @@
     },
     "EDAD_VICTIMA": {
         "categories": [
+            "PRIMERA INFANCIA",
             "INFANCIA",
             "ADOLESCENCIA",
             "JOVEN",
@@ -123,10 +124,10 @@
     },
     "FRECUENCIA_AGREDE": {
         "categories": [
+            "INTERMITENTE",
             "MENSUAL",
             "QUINCENAL",
             "SEMANAL",
-            "INTERMITENTE",
             "DIARIO"
         ],
         "ordered": true

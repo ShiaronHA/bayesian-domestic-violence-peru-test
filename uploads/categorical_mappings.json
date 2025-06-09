@@ -5,12 +5,13 @@
         "2": "REINGRESO"
     },
     "EDAD_VICTIMA": {
-        "0": "INFANCIA",
-        "1": "ADOLESCENCIA",
-        "2": "JOVEN",
-        "3": "ADULTO JOVEN",
-        "4": "ADULTO",
-        "5": "ADULTO MAYOR"
+        "0": "PRIMERA INFANCIA",
+        "1": "INFANCIA",
+        "2": "ADOLESCENCIA",
+        "3": "JOVEN",
+        "4": "ADULTO JOVEN",
+        "5": "ADULTO",
+        "6": "ADULTO MAYOR"
     },
     "LENGUA_MATERNA_VICTIMA": {
         "0": "CASTELLANO",
@@ -80,10 +81,10 @@
         "1": "SI"
     },
     "FRECUENCIA_AGREDE": {
-        "0": "MENSUAL",
-        "1": "QUINCENAL",
-        "2": "SEMANAL",
-        "3": "INTERMITENTE",
+        "0": "INTERMITENTE",
+        "1": "MENSUAL",
+        "2": "QUINCENAL",
+        "3": "SEMANAL",
         "4": "DIARIO"
     },
     "NIVEL_DE_RIESGO_VICTIMA": {
