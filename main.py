@@ -53,7 +53,7 @@ def bayesian_inference_exact(model, evidences_df, variable_name):
 
     all_results = []
     # You can adjust this number based on your system's memory
-    max_predictions_to_attempt = 10 # Reduced from 1000
+    max_predictions_to_attempt =  7# Reduced from 1000
     num_predictions = min(max_predictions_to_attempt, evidences_df.shape[0])
     
     print(f"Realizando inferencia para {num_predictions} casos (de un máximo de {max_predictions_to_attempt} intentados por ejecución)...")
