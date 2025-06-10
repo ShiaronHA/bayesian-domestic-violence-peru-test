@@ -96,7 +96,6 @@ def bayesian_inference_exact(model, evidences_df, variable_name):
     for batch_start_idx in range(0, num_total_to_process, batch_size):
         batch_end_idx = min(batch_start_idx + batch_size, num_total_to_process)
         
-        # Check if the entire batch has already been processed
         if batch_end_idx <= start_case_index:
             print(f"  Lote de casos {batch_start_idx + 1} a {batch_end_idx} ya procesado y guardado. Saltando.")
             continue
@@ -107,16 +106,13 @@ def bayesian_inference_exact(model, evidences_df, variable_name):
             continue
 
         print(f"  Procesando lote: casos {batch_start_idx + 1} a {batch_end_idx} (de {num_total_to_process} en total)...")
-        
-        batch_processed_new_results = False
 
         for i in range(current_batch_df.shape[0]):
             actual_case_index_in_original_df = batch_start_idx + i
 
             if actual_case_index_in_original_df < start_case_index:
-                continue  # Skip already processed cases within the current batch slice
+                continue
 
-            batch_processed_new_results = True
             evidence_dict = current_batch_df.iloc[i].to_dict()
             
             # Ensure evidence_dict values are JSON serializable (especially for error logging)
@@ -146,15 +142,15 @@ def bayesian_inference_exact(model, evidences_df, variable_name):
                                     "details": error_message,
                                     "evidence_case_number": actual_case_index_in_original_df + 1, 
                                     "evidence_provided": serializable_evidence_dict})
-
-        if batch_processed_new_results:
+            
+            # Save after each case (successful or error)
             try:
                 with open(result_file_path, 'w', encoding='utf-8') as f:
                     json.dump(all_results, f, indent=4, ensure_ascii=False)
-                print(f"  Resultados parciales ({len(all_results)} casos en total) guardados en: {result_file_path}")
+                print(f"      Progreso guardado tras caso {actual_case_index_in_original_df + 1}. Total {len(all_results)} items en '{result_file_path}'.")
             except Exception as e:
-                print(f"  [ERROR] No se pudieron guardar los resultados parciales de la inferencia: {e}")
-    
+                print(f"      [ERROR AL GUARDAR] No se pudo guardar el progreso tras caso {actual_case_index_in_original_df + 1}: {e}")
+
     # Final confirmation message
     if start_case_index < num_total_to_process : # Only if some processing was attempted in this run
         print(f"Proceso de inferencia exacta completado. Total de resultados ({len(all_results)} casos) guardados en: {result_file_path}")
