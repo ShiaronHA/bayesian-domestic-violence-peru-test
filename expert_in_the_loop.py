@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from networkx.drawing.nx_pydot import to_pydot
 import networkx as nx
 from pgmpy.estimators import ExpertInLoop
+from pgmpy.estimators.CITests import ChiSquare # Added import
 import pandas as pd
 import numpy as np
 
@@ -93,8 +94,37 @@ def main():
     }
 
     estimator = ExpertInLoop(train_df_for_eil) # Use the NaN-dropped version
-    dag = estimator.estimate(pval_threshold=0.05, #0.03
-                            effect_size_threshold=0.0001, 
+
+    # --- Add logging to identify candidate edges for LLM orientation ---
+    print("\\nBuilding skeleton for inspection to identify LLM candidates...")
+    try:
+        # Assuming 'chi_square' is the default test for discrete data in ExpertInLoop
+        # and using the same pval_threshold as in the estimate call.
+        current_pval_threshold = 0.03 # Match the pval_threshold in estimate()
+        
+        # ExpertInLoop internally uses CITests.get_instance, which for discrete data and default
+        # 'test' parameter would be ChiSquare.
+        # The max_cond_vars and max_combinations defaults in ExpertInLoop.estimate are 100 and None.
+        ci_estimator = ChiSquare(train_df_for_eil)
+        skeleton, _ = ci_estimator.build_skeleton_from_data(
+            significance_level=current_pval_threshold,
+            max_cond_vars=100,      # Default from ExpertInLoop.estimate
+            max_combinations=None   # Default from ExpertInLoop.estimate
+        )
+        print("Edges in the statistically derived skeleton (potential candidates for LLM orientation):")
+        candidate_edges = list(skeleton.edges())
+        if not candidate_edges:
+            print("  No edges found in the initial skeleton.")
+        else:
+            for u, v in candidate_edges:
+                print(f"  - ({u}, {v})")
+        print("--- End of candidate edge list ---\\n")
+    except Exception as e:
+        print(f"[ERROR] Could not build skeleton for inspection: {e}")
+    # --- End of added logging ---
+
+    dag = estimator.estimate(pval_threshold=0.03, #0.05
+                            effect_size_threshold=0.001, #0.0001
                             variable_descriptions=descriptions,
                             use_llm=True,
                             llm_model="gemini/gemini-1.5-flash")
