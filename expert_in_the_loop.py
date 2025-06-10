@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from networkx.drawing.nx_pydot import to_pydot
 import networkx as nx
 from pgmpy.estimators import ExpertInLoop
-from pgmpy.estimators.CITests import ChiSquare # Added import
+from pgmpy.estimators.CITests import chi_square # Added import
 import pandas as pd
 import numpy as np
 
@@ -105,7 +105,7 @@ def main():
         # ExpertInLoop internally uses CITests.get_instance, which for discrete data and default
         # 'test' parameter would be ChiSquare.
         # The max_cond_vars and max_combinations defaults in ExpertInLoop.estimate are 100 and None.
-        ci_estimator = ChiSquare(train_df_for_eil)
+        ci_estimator = chi_square(train_df_for_eil)
         skeleton, _ = ci_estimator.build_skeleton_from_data(
             significance_level=current_pval_threshold,
             max_cond_vars=100,      # Default from ExpertInLoop.estimate
