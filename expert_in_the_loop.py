@@ -127,7 +127,7 @@ def main():
                             effect_size_threshold=0.001, #0.0001
                             variable_descriptions=descriptions,
                             use_llm=True,
-                            llm_model="gemini/gemini-1.5-flash")
+                            llm_model="gemini/gemini-1.5-flash") #gemini-pro, gpt-4
     
     #Guardar el DAG aprendido
     filename = "./models/dag_aprendido_with_llm.pkl"

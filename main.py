@@ -36,6 +36,9 @@ def parameter_learning(model, df):
 
 # --- Inferencia exacta ---
 def bayesian_inference_exact(model, evidences_df, variable_name):
+    result_file_path = os.path.join('./results', 'inferencia_exact_rb_ypred_batch.json')
+    calibration_error_file_path = os.path.join('./results', 'inferencia_rb_error_ypred_batch.json')
+
     print("\\\\nRealizando inferencia exacta para múltiples casos...")
     belief_propagation = BeliefPropagation(model)
     print("Calibrando Belief Propagation...")
@@ -43,58 +46,119 @@ def bayesian_inference_exact(model, evidences_df, variable_name):
         belief_propagation.calibrate()
     except Exception as e:
         print(f"[ERROR] Falló la calibración de Belief Propagation: {e}")
-        # Guardar un JSON vacío o con error y retornar
         error_result = {"error": "Fallo en la calibración de Belief Propagation", "details": str(e)}
-        result_file_path = os.path.join('./results', 'inferencia_rb_error_ypred_batch.json')
-        with open(result_file_path, 'w', encoding='utf-8') as f:
+        # Save calibration error to its specific file
+        with open(calibration_error_file_path, 'w', encoding='utf-8') as f:
             json.dump([error_result], f, indent=4, ensure_ascii=False)
-        print(f"Error de calibración guardado en: {result_file_path}")
-        return [error_result]
+        print(f"Error de calibración guardado en: {calibration_error_file_path}")
+        return [error_result] # Return the error, main loop will handle this
 
     all_results = []
-    total_max_predictions = 1000  # Límite superior de predicciones a intentar
+    start_case_index = 0
+
+    # Try to load previous results
+    if os.path.exists(result_file_path):
+        try:
+            with open(result_file_path, 'r', encoding='utf-8') as f:
+                loaded_data = json.load(f)
+            if isinstance(loaded_data, list) and all(isinstance(item, dict) for item in loaded_data):
+                # Check if the loaded data is actually a calibration error saved to the wrong file
+                is_calibration_error = False
+                if len(loaded_data) == 1 and "error" in loaded_data[0]:
+                    if "Fallo en la calibración de Belief Propagation" in loaded_data[0]["error"]:
+                        is_calibration_error = True
+                
+                if not is_calibration_error:
+                    all_results = loaded_data
+                    start_case_index = len(all_results)
+                    print(f"Se cargaron {start_case_index} resultados previos desde '{result_file_path}'.")
+                else:
+                    print(f"El archivo '{result_file_path}' contenía un error de calibración. Iniciando inferencia de resultados de nuevo.")
+            else:
+                print(f"[ADVERTENCIA] El archivo '{result_file_path}' no contiene una lista de resultados válida. Iniciando de nuevo.")
+        except json.JSONDecodeError:
+            print(f"[ADVERTENCIA] Error al decodificar JSON desde '{result_file_path}'. Iniciando de nuevo.")
+        except Exception as e:
+            print(f"[ADVERTENCIA] No se pudieron cargar resultados previos desde '{result_file_path}': {e}. Iniciando de nuevo.")
+
+    total_max_predictions = 1000
     batch_size = 7
-    
     num_total_to_process = min(total_max_predictions, evidences_df.shape[0])
-    
-    print(f"Realizando inferencia para un total de {num_total_to_process} casos, en lotes de hasta {batch_size}...")
+
+    if start_case_index >= num_total_to_process:
+        print(f"Todos los {num_total_to_process} casos ya han sido procesados según el archivo '{result_file_path}'.")
+        return all_results
+
+    print(f"Realizando inferencia para un total de {num_total_to_process} casos, en lotes de hasta {batch_size}.")
+    if start_case_index > 0:
+        print(f"Reanudando desde el caso {start_case_index + 1}.")
 
     for batch_start_idx in range(0, num_total_to_process, batch_size):
         batch_end_idx = min(batch_start_idx + batch_size, num_total_to_process)
+        
+        # Check if the entire batch has already been processed
+        if batch_end_idx <= start_case_index:
+            print(f"  Lote de casos {batch_start_idx + 1} a {batch_end_idx} ya procesado y guardado. Saltando.")
+            continue
+
         current_batch_df = evidences_df.iloc[batch_start_idx:batch_end_idx]
         
         if current_batch_df.empty:
             continue
 
         print(f"  Procesando lote: casos {batch_start_idx + 1} a {batch_end_idx} (de {num_total_to_process} en total)...")
+        
+        batch_processed_new_results = False
 
         for i in range(current_batch_df.shape[0]):
             actual_case_index_in_original_df = batch_start_idx + i
+
+            if actual_case_index_in_original_df < start_case_index:
+                continue  # Skip already processed cases within the current batch slice
+
+            batch_processed_new_results = True
             evidence_dict = current_batch_df.iloc[i].to_dict()
-            # Asegurar que los valores de evidencia sean del tipo correcto si es necesario
+            
+            # Ensure evidence_dict values are JSON serializable (especially for error logging)
+            serializable_evidence_dict = {}
             for k, v in evidence_dict.items():
                 if isinstance(v, float) and v.is_integer():
-                    evidence_dict[k] = int(v)
-
-            print(f"    Caso {actual_case_index_in_original_df + 1}/{num_total_to_process} - Evidencia: {evidence_dict}")
+                    serializable_evidence_dict[k] = int(v)
+                elif isinstance(v, (np.integer, np.int64)):
+                    serializable_evidence_dict[k] = int(v)
+                elif isinstance(v, (np.floating, np.float64)):
+                    serializable_evidence_dict[k] = float(v)
+                elif pd.isna(v): # Represent NaN as None for JSON
+                    serializable_evidence_dict[k] = None
+                else:
+                    serializable_evidence_dict[k] = v
+            
+            print(f"    Caso {actual_case_index_in_original_df + 1}/{num_total_to_process} - Evidencia: {serializable_evidence_dict}")
             try:
+                # Use original evidence_dict for pgmpy, serializable_evidence_dict for logging
                 result = belief_propagation.map_query(variables=[variable_name], evidence=evidence_dict)
-                # Convertir tipos de numpy a tipos estándar de Python para serialización JSON
                 processed_result = {k_res: int(v_res) if hasattr(v_res, 'item') else v_res for k_res, v_res in result.items()}
                 all_results.append(processed_result)
             except Exception as e:
-                print(f"    [ERROR] Error al procesar caso {actual_case_index_in_original_df + 1} con evidencia {evidence_dict}: {e}")
-                all_results.append({"error": str(e), "evidence_case_number": actual_case_index_in_original_df + 1, "evidence_provided": evidence_dict})
+                error_message = f"Error al procesar caso {actual_case_index_in_original_df + 1}"
+                print(f"    [ERROR] {error_message} con evidencia {serializable_evidence_dict}: {e}")
+                all_results.append({"error": str(e), 
+                                    "details": error_message,
+                                    "evidence_case_number": actual_case_index_in_original_df + 1, 
+                                    "evidence_provided": serializable_evidence_dict})
 
-    result_file_path = os.path.join('./results', 'inferencia_exact_rb_ypred_batch.json')
-    try:
-        with open(result_file_path, 'w', encoding='utf-8') as f:
-            json.dump(all_results, f, indent=4, ensure_ascii=False)
-        print(f"Resultados de la inferencia ({len(all_results)} casos procesados) guardados en: {result_file_path}")
-    except Exception as e:
-        print(f"[ERROR] No se pudieron guardar los resultados de la inferencia: {e}")
+        if batch_processed_new_results:
+            try:
+                with open(result_file_path, 'w', encoding='utf-8') as f:
+                    json.dump(all_results, f, indent=4, ensure_ascii=False)
+                print(f"  Resultados parciales ({len(all_results)} casos en total) guardados en: {result_file_path}")
+            except Exception as e:
+                print(f"  [ERROR] No se pudieron guardar los resultados parciales de la inferencia: {e}")
     
-    # 2. VariableElimination (Pendiente de implementar)
+    # Final confirmation message
+    if start_case_index < num_total_to_process : # Only if some processing was attempted in this run
+        print(f"Proceso de inferencia exacta completado. Total de resultados ({len(all_results)} casos) guardados en: {result_file_path}")
+    
     return all_results
 
 #Inferencia aproximada con Variational Inference, gibbs sampling
@@ -304,7 +368,7 @@ def main():
 
     
     # Inferencia
-    type_inference = ['Exact', 'Approximate']
+    type_inference = ['Exact']#, 'Approximate']
     
     for i in type_inference:
         print(f"\nGuardando métricas para tipo de inferencia: {i}")
