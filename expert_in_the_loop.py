@@ -81,9 +81,9 @@ def main():
     "ESTADO_AGRESOR_G":"Estado de la presunta persona agresora generalmente",
     "ESTADO_VICTIMA_U_A":"Estado de la victima en la última agresión",
     "ESTADO_VICTIMA_G":"Estado de la persona usuaria generalmente",
-    "REDES_FAM_SOC":"¿Cuenta con redes familiares o sociales?",
+    "REDES_FAM_SOC":"¿La victima cuenta con redes familiares o sociales, como amigos, colegas, vecinos?",
     "NIVEL_VIOLENCIA_DISTRITO":"Valoración del nivel de violencia en el distrito donde vive la victima, es la clasificacion del ratio de casos de violencia reportados en el distrito con respecto a la población total del distrito.",
-    "SEGURO_VICTIMA":"¿Cuenta con algún tipo de seguro?",
+    "SEGURO_VICTIMA":"¿La victima cuenta con algún tipo de seguro?",
     "TRATAMIENTO_VICTIMA":"¿Recibe actualmente algún tipo de tratamiento psicológico la victima?",
     "VINCULO_AFECTIVO":"'¿Tiene vínculos afectivos positivos la victima?",
     "VIOLENCIA_ECONOMICA": "¿La victima ha sufrido violencia económica?",
@@ -123,11 +123,11 @@ def main():
     #     print(f"[ERROR] Could not build skeleton for inspection: {e}")
     # # --- End of added logging ---
 
-    dag = estimator.estimate(pval_threshold=0.03, #0.05
-                            effect_size_threshold=0.001, #0.0001
+    dag = estimator.estimate(pval_threshold=0.05, #0.05
+                            effect_size_threshold=0.01, #0.0001
                             variable_descriptions=descriptions,
                             use_llm=True,
-                            llm_model="gemini/gemini-1.5-flash") #gemini-pro, gpt-4
+                            llm_model="gemini/gemini-2.0-flash") #gemini-pro, gpt-4,gemini-1.5-flash
     
     #Guardar el DAG aprendido
     filename = "./models/dag_aprendido_with_llm.pkl"
