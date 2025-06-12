@@ -332,6 +332,13 @@ def main():
                 except:
                     pass  # Si no tiene CPD
                 model_rb.remove_node(nodo)
+                
+        # Ajustar DataFrames y evidencias
+        val_encoded = val_encoded.drop(columns=nodos_a_excluir, errors='ignore')
+        evidences_to_predict = [
+            {k: v for k, v in ev.items() if k not in nodos_a_excluir}
+            for ev in evidences_to_predict
+        ]
     
     # 3. Aprendizaje de parámetros usando el training set
     model_rb = parameter_learning(model_rb, train_encoded)
@@ -360,13 +367,7 @@ def main():
     # 5. Inferencia exacta
     print("\\nPreparando datos para inferencia en lote...")
 
-    if model == "gemini":
-    val_encoded = val_encoded.drop(columns=nodos_a_excluir, errors='ignore')
-    evidences_to_predict = [
-        {k: v for k, v in ev.items() if k not in nodos_a_excluir}
-        for ev in evidences_to_predict
-    ]
-    
+
     # Verificar que todas las columnas del manto de Markov estén en val_encoded
     missing_cols = [col for col in markov_blanket if col not in val_encoded.columns]
     if missing_cols:
