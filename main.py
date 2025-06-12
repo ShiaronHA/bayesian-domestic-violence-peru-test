@@ -320,10 +320,14 @@ def main():
         print(f"[ERROR] Ocurrió un error al cargar el modelo: {e}")
         return
 
-    # Si se está usando el modelo Gemini, excluye el nodo sin CPD
-    if model == "gemini" and "TRATAMIENTO_VICTIMA" in model_rb.nodes():
-        print("Excluyendo nodo TRATAMIENTO_VICTIMA del modelo gemini...")
-        model_rb.remove_node("TRATAMIENTO_VICTIMA")
+    # Lista de nodos a eliminar si el modelo es 'gemini'
+    nodos_a_excluir = ["TRATAMIENTO_VICTIMA", "VIOLENCIA_ECONOMICA"]
+
+    if model_name == "gemini":
+        for nodo in nodos_a_excluir:
+            if nodo in model_rb.nodes():
+                print(f"Excluyendo nodo {nodo} del modelo gemini...")
+                model_rb.remove_node(nodo)
     
     # 3. Aprendizaje de parámetros usando el training set
     model_rb = parameter_learning(model_rb, train_encoded)
