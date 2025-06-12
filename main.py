@@ -327,6 +327,10 @@ def main():
         for nodo in nodos_a_excluir:
             if nodo in model_rb.nodes():
                 print(f"Excluyendo nodo {nodo} del modelo gemini...")
+                try:
+                    model_rb.remove_cpds(model_rb.get_cpds(nodo))
+                except:
+                    pass  # Si no tiene CPD
                 model_rb.remove_node(nodo)
     
     # 3. Aprendizaje de parámetros usando el training set
@@ -355,6 +359,13 @@ def main():
 
     # 5. Inferencia exacta
     print("\\nPreparando datos para inferencia en lote...")
+
+    if model == "gemini":
+    val_encoded = val_encoded.drop(columns=nodos_a_excluir, errors='ignore')
+    evidences_to_predict = [
+        {k: v for k, v in ev.items() if k not in nodos_a_excluir}
+        for ev in evidences_to_predict
+    ]
     
     # Verificar que todas las columnas del manto de Markov estén en val_encoded
     missing_cols = [col for col in markov_blanket if col not in val_encoded.columns]
