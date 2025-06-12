@@ -319,6 +319,11 @@ def main():
     except Exception as e:
         print(f"[ERROR] Ocurrió un error al cargar el modelo: {e}")
         return
+
+    # Si se está usando el modelo Gemini, excluye el nodo sin CPD
+    if model == "gemini" and "TRATAMIENTO_VICTIMA" in model_rb.nodes():
+        print("Excluyendo nodo TRATAMIENTO_VICTIMA del modelo gemini...")
+        model_rb.remove_node("TRATAMIENTO_VICTIMA")
     
     # 3. Aprendizaje de parámetros usando el training set
     model_rb = parameter_learning(model_rb, train_encoded)

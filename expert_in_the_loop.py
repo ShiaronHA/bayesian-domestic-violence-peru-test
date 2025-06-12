@@ -98,25 +98,12 @@ def main():
 
     print("\nIniciando el aprendizaje del DAG con LLM...")
 
-    #dag = estimator.estimate(pval_threshold=0.05, #0.05
-    #                        effect_size_threshold=0.01, #0.0001
-    #                        variable_descriptions=descriptions,
-    #                        use_llm=True,
-    #                        llm_model="gemini/gemini-2.0-flash") #gemini-pro, gpt-4,gemini-1.5-flash
+    dag = estimator.estimate(pval_threshold=0.05, #0.05
+                            effect_size_threshold=0.01, #0.0001
+                            variable_descriptions=descriptions,
+                            use_llm=True,
+                            llm_model="gemini/gemini-2.0-flash") #gemini-pro, gpt-4,gemini-1.5-flash
     
-    #Cambio temporal: cargar el dag aprendido previamente
-    model_path = './models/dag_aprendido_with_llm.pkl'
-    try:
-        with open(model_path, 'rb') as f:
-            dag = pickle.load(f)
-    except FileNotFoundError:
-        print(f"[ERROR] Archivo de modelo no encontrado en {model_path}")
-        print("Por favor, verifica la ruta y el nombre del archivo del modelo.")
-        return
-    except Exception as e:
-        print(f"[ERROR] Ocurrió un error al cargar el modelo: {e}")
-        return
-    #Cambio temporal: cargar el dag aprendido previamente
     
     # Guardar el model aprendido
     bn_model = DiscreteBayesianNetwork()
