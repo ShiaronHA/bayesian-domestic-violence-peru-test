@@ -323,7 +323,7 @@ def main():
     # Lista de nodos a eliminar si el modelo es 'gemini'
     nodos_a_excluir = ["TRATAMIENTO_VICTIMA", "VIOLENCIA_ECONOMICA"]
 
-    if model_name == "gemini":
+    if model == "gemini":
         for nodo in nodos_a_excluir:
             if nodo in model_rb.nodes():
                 print(f"Excluyendo nodo {nodo} del modelo gemini...")
