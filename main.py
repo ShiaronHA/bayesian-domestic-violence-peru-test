@@ -320,6 +320,45 @@ def main():
         print(f"[ERROR] Ocurrió un error al cargar el modelo: {e}")
         return
 
+    
+    #4. Evaluando modelo con Red Bayesiana
+    print("\\nEvaluando el modelo con Red Bayesiana...")
+    
+    target_variable = 'NIVEL_DE_RIESGO_VICTIMA' #Variable objetivo
+    
+    try:
+        markov_blanket = model_rb.get_markov_blanket(target_variable)
+        if not markov_blanket: # Si el target no tiene nodos en su blanket (es aislado o raíz sin hijos en el scope)
+             print(f"[ADVERTENCIA] El manto de Markov para '{target_variable}' está vacío. Puede que no esté conectado o sea una variable aislada.")
+             # Decide cómo proceder: quizás usar todas las variables o un subconjunto predefinido.
+             # Por ahora, si está vacío, la inferencia con él no tendrá sentido.
+             # Podrías usar model_rb.nodes() pero eso sería todas las variables.
+             # O definir un conjunto por defecto de variables de evidencia.
+             # Para este ejemplo, si está vacío, la inferencia fallará o será trivial.
+             # Vamos a verificar que las columnas del blanket existan en val_encoded
+        print(f"Manto de Markov de '{target_variable}': {markov_blanket}")
+    except Exception as e:
+        print(f"[ERROR] No se pudo obtener el Manto de Markov para '{target_variable}': {e}")
+        print("Asegúrate de que la variable objetivo exista en el modelo.")
+        return
+
+    
+
+
+    # Verificar que todas las columnas del manto de Markov estén en val_encoded
+    missing_cols = [col for col in markov_blanket if col not in val_encoded.columns]
+    if missing_cols:
+        print(f"[ERROR] Las siguientes columnas del Manto de Markov no se encuentran en val_encoded: {missing_cols}")
+        print("No se puede proceder con la inferencia.")
+        return
+
+    if not markov_blanket: # Si el blanket está vacío y no se manejó antes
+        print(f"[ADVERTENCIA] El Manto de Markov para '{target_variable}' está vacío. No se pueden seleccionar columnas para la evidencia.")
+        evidences_to_predict = pd.DataFrame() # DataFrame vacío
+    else:
+        evidences_to_predict = val_encoded[markov_blanket]
+
+
     # Lista de nodos a eliminar si el modelo es 'gemini'
     nodos_a_excluir = ["TRATAMIENTO_VICTIMA", "VIOLENCIA_ECONOMICA"]
 
@@ -343,49 +382,13 @@ def main():
     # 3. Aprendizaje de parámetros usando el training set
     model_rb = parameter_learning(model_rb, train_encoded)
 
-    #4. Evaluando modelo con Red Bayesiana
-    print("\\nEvaluando el modelo con Red Bayesiana...")
-    
-    target_variable = 'NIVEL_DE_RIESGO_VICTIMA' #Variable objetivo
-    
-    try:
-        markov_blanket = model_rb.get_markov_blanket(target_variable)
-        if not markov_blanket: # Si el target no tiene nodos en su blanket (es aislado o raíz sin hijos en el scope)
-             print(f"[ADVERTENCIA] El manto de Markov para '{target_variable}' está vacío. Puede que no esté conectado o sea una variable aislada.")
-             # Decide cómo proceder: quizás usar todas las variables o un subconjunto predefinido.
-             # Por ahora, si está vacío, la inferencia con él no tendrá sentido.
-             # Podrías usar model_rb.nodes() pero eso sería todas las variables.
-             # O definir un conjunto por defecto de variables de evidencia.
-             # Para este ejemplo, si está vacío, la inferencia fallará o será trivial.
-             # Vamos a verificar que las columnas del blanket existan en val_encoded
-        print(f"Manto de Markov de '{target_variable}': {markov_blanket}")
-    except Exception as e:
-        print(f"[ERROR] No se pudo obtener el Manto de Markov para '{target_variable}': {e}")
-        print("Asegúrate de que la variable objetivo exista en el modelo.")
-        return
-
-    # 5. Inferencia exacta
-    print("\\nPreparando datos para inferencia en lote...")
-
-
-    # Verificar que todas las columnas del manto de Markov estén en val_encoded
-    missing_cols = [col for col in markov_blanket if col not in val_encoded.columns]
-    if missing_cols:
-        print(f"[ERROR] Las siguientes columnas del Manto de Markov no se encuentran en val_encoded: {missing_cols}")
-        print("No se puede proceder con la inferencia.")
-        return
-
-    if not markov_blanket: # Si el blanket está vacío y no se manejó antes
-        print(f"[ADVERTENCIA] El Manto de Markov para '{target_variable}' está vacío. No se pueden seleccionar columnas para la evidencia.")
-        evidences_to_predict = pd.DataFrame() # DataFrame vacío
-    else:
-        evidences_to_predict = val_encoded[markov_blanket]
-
 
     output_dir = './results'
 
     
-    # Inferencia
+    # 5. Inferencia exacta
+    print("\\nPreparando datos para inferencia en lote...")
+    
     type_inference = ['Exact']#, 'Approximate']
     
     for i in type_inference:
