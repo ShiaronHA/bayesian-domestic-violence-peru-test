@@ -290,7 +290,7 @@ def main():
     
     #model_path = './models/mejor_modelo_hill_climb_bdeu_20000_bDeuScore-5855502.80_edges_72_20250606_084240.pkl'   
     #model_path = './models/mejor_modelo_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'
-    model_path = './models/dag_aprendido_with_llm.pkl'
+    model_path = './models/dag_aprendido_with_llm_gemini.pkl'
     model = 'gemini'        
     print(f"Cargando el modelo desde: {model_path}")
 

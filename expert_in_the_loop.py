@@ -6,6 +6,7 @@ import time
 from sklearn.model_selection import train_test_split # Added import
 import matplotlib.pyplot as plt
 from networkx.drawing.nx_pydot import to_pydot
+from pgmpy.models import BayesianNetwork, DiscreteBayesianNetwork
 import networkx as nx
 from pgmpy.estimators import ExpertInLoop
 from pgmpy.estimators.CITests import chi_square # Added import
@@ -95,44 +96,37 @@ def main():
 
     estimator = ExpertInLoop(train_df_for_eil) # Use the NaN-dropped version
 
-    # # --- Add logging to identify candidate edges for LLM orientation ---
-    # print("\\nBuilding skeleton for inspection to identify LLM candidates...")
-    # try:
-    #     # Assuming 'chi_square' is the default test for discrete data in ExpertInLoop
-    #     # and using the same pval_threshold as in the estimate call.
-    #     current_pval_threshold = 0.03 # Match the pval_threshold in estimate()
-        
-    #     # ExpertInLoop internally uses CITests.get_instance, which for discrete data and default
-    #     # 'test' parameter would be ChiSquare.
-    #     # The max_cond_vars and max_combinations defaults in ExpertInLoop.estimate are 100 and None.
-    #     ci_estimator = chi_square(train_df_for_eil)
-    #     skeleton, _ = ci_estimator.build_skeleton_from_data(
-    #         significance_level=current_pval_threshold,
-    #         max_cond_vars=100,      # Default from ExpertInLoop.estimate
-    #         max_combinations=None   # Default from ExpertInLoop.estimate
-    #     )
-    #     print("Edges in the statistically derived skeleton (potential candidates for LLM orientation):")
-    #     candidate_edges = list(skeleton.edges())
-    #     if not candidate_edges:
-    #         print("  No edges found in the initial skeleton.")
-    #     else:
-    #         for u, v in candidate_edges:
-    #             print(f"  - ({u}, {v})")
-    #     print("--- End of candidate edge list ---\\n")
-    # except Exception as e:
-    #     print(f"[ERROR] Could not build skeleton for inspection: {e}")
-    # # --- End of added logging ---
+    print("\nIniciando el aprendizaje del DAG con LLM...")
 
-    dag = estimator.estimate(pval_threshold=0.05, #0.05
-                            effect_size_threshold=0.01, #0.0001
-                            variable_descriptions=descriptions,
-                            use_llm=True,
-                            llm_model="gemini/gemini-2.0-flash") #gemini-pro, gpt-4,gemini-1.5-flash
+    #dag = estimator.estimate(pval_threshold=0.05, #0.05
+    #                        effect_size_threshold=0.01, #0.0001
+    #                        variable_descriptions=descriptions,
+    #                        use_llm=True,
+    #                        llm_model="gemini/gemini-2.0-flash") #gemini-pro, gpt-4,gemini-1.5-flash
+    
+    #Cambio temporal: cargar el dag aprendido previamente
+    model_path = './models/dag_aprendido_with_llm.pkl'
+    try:
+        with open(model_path, 'rb') as f:
+            dag = pickle.load(f)
+    except FileNotFoundError:
+        print(f"[ERROR] Archivo de modelo no encontrado en {model_path}")
+        print("Por favor, verifica la ruta y el nombre del archivo del modelo.")
+        return
+    except Exception as e:
+        print(f"[ERROR] Ocurrió un error al cargar el modelo: {e}")
+        return
+    #Cambio temporal: cargar el dag aprendido previamente
+    
+    # Guardar el model aprendido
+    bn_model = DiscreteBayesianNetwork()
+    bn_model.add_nodes_from(train_df_for_eil.columns)
+    bn_model.add_edges_from(dag.edges())
     
     #Guardar el DAG aprendido
-    filename = "./models/dag_aprendido_with_llm.pkl"
+    filename = "./models/dag_aprendido_with_llm_gemini.pkl"
     with open(filename, 'wb') as f:
-        pickle.dump(dag, f)
+        pickle.dump(bn_model, f)
     
     print(f"\nEl DAG aprendido ha sido guardado en: {filename}")
     
