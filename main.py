@@ -81,7 +81,7 @@ def bayesian_inference_exact(model, evidences_df, variable_name):
         except Exception as e:
             print(f"[ADVERTENCIA] No se pudieron cargar resultados previos desde '{result_file_path}': {e}. Iniciando de nuevo.")
 
-    total_max_predictions = 1000
+    total_max_predictions = 100
     batch_size = 7
     num_total_to_process = min(total_max_predictions, evidences_df.shape[0])
 
@@ -245,7 +245,7 @@ def metrics_to_dataframe(y_val, y_val_pred, type_inference, model, output_dir='.
     
     # Métricas para val
     val_metrics = {
-        'model': 'RandomForest',
+        'model': model,
         'dataset': 'val',
         'accuracy': accuracy_score(y_val, y_val_pred),
         'precision': precision_score(y_val, y_val_pred, average='weighted', zero_division=0),
@@ -374,21 +374,28 @@ def main():
             elif not evidences_to_predict.empty:
                 print(f"Se usarán {evidences_to_predict.shape[0]} filas de val_encoded para la inferencia.")
                 all_results = bayesian_inference_exact(model_rb, evidences_to_predict, target_variable)
+
+                # Limitar a los primeros 100 resultados
+                all_results = all_results[:100]
             else:
                 print("No se realizará la inferencia ya que no hay datos de evidencia preparados.")
-                
+                continue  # Saltar a la siguiente iteración si no hay resultados
+
             # Predicciones
-            # Convertir all_results en una lista de valores planos
             y_val_pred = [res[target_variable] if isinstance(res, dict) and target_variable in res else None for res in all_results]
 
             # Filtrar casos inválidos si los hay (por errores de inferencia)
             valid_idx = [i for i, val in enumerate(y_val_pred) if val is not None]
             y_val_pred = [y_val_pred[i] for i in valid_idx]
+
+            # Obtener los valores reales correspondientes y limitar a 100 registros
             y_val = val_encoded[target_variable].iloc[valid_idx]
-            
+            y_val = y_val.iloc[:100]
+
             # Guardar métricas en DataFrame
-            print("\\nGuardando métricas del modelo...")
+            print("\nGuardando métricas del modelo...")
             metrics_to_dataframe(y_val, y_val_pred, i, model, output_dir)
+            
         elif i == 'Approximate':
             if evidences_to_predict.empty and markov_blanket:
                 print("[ADVERTENCIA] No hay datos en val_encoded para las columnas del Manto de Markov, o val_encoded está vacío.")
