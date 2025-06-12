@@ -289,8 +289,9 @@ def metrics_to_dataframe(y_val, y_val_pred, type_inference, model, output_dir='.
 def main():
     
     #model_path = './models/mejor_modelo_hill_climb_bdeu_20000_bDeuScore-5855502.80_edges_72_20250606_084240.pkl'   
-    model_path = './models/mejor_modelo_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'
-    model = 'hill_climb'        
+    #model_path = './models/mejor_modelo_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'
+    model_path = './models/dag_aprendido_with_llm.pkl'
+    model = 'gemini'        
     print(f"Cargando el modelo desde: {model_path}")
 
     # 1. Leemos los DataFrames de entrenamiento y validación
@@ -395,7 +396,7 @@ def main():
             # Guardar métricas en DataFrame
             print("\nGuardando métricas del modelo...")
             metrics_to_dataframe(y_val, y_val_pred, i, model, output_dir)
-            
+
         elif i == 'Approximate':
             if evidences_to_predict.empty and markov_blanket:
                 print("[ADVERTENCIA] No hay datos en val_encoded para las columnas del Manto de Markov, o val_encoded está vacío.")
