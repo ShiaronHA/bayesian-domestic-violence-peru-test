@@ -379,8 +379,8 @@ def main():
 
     if model == "gemini":
         evidences_to_predict = [
-            {k: v for k, v in ev.items() if k not in nodos_a_excluir}
-                for ev in evidences_to_predict
+            {k: v for k, v in ev.to_dict().items() if k not in nodos_a_excluir}
+            for _, ev in evidences_to_predict.iterrows()
         ] 
         
     # 3. Aprendizaje de parámetros usando el training set
