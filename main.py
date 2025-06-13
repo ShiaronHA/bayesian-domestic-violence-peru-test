@@ -320,6 +320,25 @@ def main():
         print(f"[ERROR] Ocurrió un error al cargar el modelo: {e}")
         return
 
+    # Lista de nodos a eliminar si el modelo es 'gemini'
+    nodos_a_excluir = ["TRATAMIENTO_VICTIMA", "VIOLENCIA_ECONOMICA"]
+
+    if model == "gemini":
+        for nodo in nodos_a_excluir:
+            if nodo in model_rb.nodes():
+                print(f"Excluyendo nodo {nodo} del modelo gemini...")
+                try:
+                    model_rb.remove_cpds(model_rb.get_cpds(nodo))
+                except:
+                    pass  # Si no tiene CPD
+                model_rb.remove_node(nodo)
+                
+        # Ajustar DataFrames y evidencias
+        val_encoded = val_encoded.drop(columns=nodos_a_excluir, errors='ignore')
+        #evidences_to_predict = [
+        #    {k: v for k, v in ev.items() if k not in nodos_a_excluir}
+        #    for ev in evidences_to_predict
+        #]
     
     #4. Evaluando modelo con Red Bayesiana
     print("\\nEvaluando el modelo con Red Bayesiana...")
@@ -359,25 +378,7 @@ def main():
         evidences_to_predict = val_encoded[markov_blanket]
 
 
-    # Lista de nodos a eliminar si el modelo es 'gemini'
-    nodos_a_excluir = ["TRATAMIENTO_VICTIMA", "VIOLENCIA_ECONOMICA"]
-
-    if model == "gemini":
-        for nodo in nodos_a_excluir:
-            if nodo in model_rb.nodes():
-                print(f"Excluyendo nodo {nodo} del modelo gemini...")
-                try:
-                    model_rb.remove_cpds(model_rb.get_cpds(nodo))
-                except:
-                    pass  # Si no tiene CPD
-                model_rb.remove_node(nodo)
-                
-        # Ajustar DataFrames y evidencias
-        val_encoded = val_encoded.drop(columns=nodos_a_excluir, errors='ignore')
-        evidences_to_predict = [
-            {k: v for k, v in ev.items() if k not in nodos_a_excluir}
-            for ev in evidences_to_predict
-        ]
+    
     
     # 3. Aprendizaje de parámetros usando el training set
     model_rb = parameter_learning(model_rb, train_encoded)
@@ -388,7 +389,7 @@ def main():
     
     # 5. Inferencia exacta
     print("\\nPreparando datos para inferencia en lote...")
-    
+
     type_inference = ['Exact']#, 'Approximate']
     
     for i in type_inference:
