@@ -377,9 +377,12 @@ def main():
     else:
         evidences_to_predict = val_encoded[markov_blanket]
 
-
-    
-    
+    if model == "gemini":
+        evidences_to_predict = [
+            {k: v for k, v in ev.items() if k not in nodos_a_excluir}
+                for ev in evidences_to_predict
+        ] 
+        
     # 3. Aprendizaje de parámetros usando el training set
     model_rb = parameter_learning(model_rb, train_encoded)
 
