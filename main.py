@@ -35,9 +35,9 @@ def parameter_learning(model, df):
     return model
 
 # --- Inferencia exacta ---
-def bayesian_inference_exact(model, evidences_df, variable_name):
-    result_file_path = os.path.join('./results', 'inferencia_exact_rb_ypred_batch.json')
-    calibration_error_file_path = os.path.join('./results', 'inferencia_rb_error_ypred_batch.json')
+def bayesian_inference_exact(model, evidences_df, variable_name, model_name):
+    result_file_path = os.path.join('./results', f'inferencia_exact_rb_ypred_batch_{model_name}.json')
+    calibration_error_file_path = os.path.join('./results', f'inferencia_rb_error_ypred_batch_{model_name}.json')
 
     print("\\\\nRealizando inferencia exacta para múltiples casos...")
     belief_propagation = BeliefPropagation(model)
@@ -402,7 +402,7 @@ def main():
                 print("[ADVERTENCIA] No hay datos en val_encoded para las columnas del Manto de Markov, o val_encoded está vacío.")
             elif not evidences_to_predict.empty:
                 print(f"Se usarán {evidences_to_predict.shape[0]} filas de val_encoded para la inferencia.")
-                all_results = bayesian_inference_exact(model_rb, evidences_to_predict, target_variable)
+                all_results = bayesian_inference_exact(model_rb, evidences_to_predict, target_variable, model)
 
                 # Limitar a los primeros 100 resultados
                 all_results = all_results[:100]
