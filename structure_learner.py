@@ -313,39 +313,46 @@ def main():
     
     # --- Guardar el mejor modelo ---
     if not results_structure_learning.empty:
-        best_row = results_structure_learning.iloc[0]
-        best_model_key = f"{best_row['Algorithm']}_{best_row['Score_method']}_{int(best_row['Sample_Size'])}"
-        best_score = best_row['BDeu_Score']
-        best_model_edges = len(trained_models[best_model_key].edges()) if best_model_key in trained_models and hasattr(trained_models[best_model_key], 'edges') else 'N/A'
-        best_model = trained_models[best_model_key]
-        
-        now = datetime.now()
-        timestamp_str = now.strftime("%Y%m%d_%H%M%S")
-        
-        filename_best = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges_{best_model_edges}_{timestamp_str}.pkl"
-        with open(filename_best, 'wb') as f:
-            pickle.dump(best_model, f)
-        print(f"\\nEl mejor modelo ha sido guardado en: {filename_best}")
+        # Filtrar modelos según la condición para 'pc'
+        filtered_results = results_structure_learning.copy()
+        for idx, row in filtered_results.iterrows():
+            if row['Algorithm'] == 'pc' and row['Number_of_Edges'] != row['Number_of_df_variables']:
+                print(f"[INFO] Modelo PC con sample_size={row['Sample_Size']} descartado porque Number_of_Edges ({row['Number_of_Edges']}) != Number_of_df_variables ({row['Number_of_df_variables']})")
+                filtered_results = filtered_results.drop(idx)
+        filtered_results = filtered_results.reset_index(drop=True)
 
-        # --- Guardar el segundo mejor modelo ---
-        if len(results_structure_learning) > 1:
-            second_best_row = results_structure_learning.iloc[1]
-            second_best_model_key = f"{second_best_row['Algorithm']}_{second_best_row['Score_method']}_{int(second_best_row['Sample_Size'])}"
-            second_best_score = second_best_row['BDeu_Score']
-            second_best_model_edges = len(trained_models[second_best_model_key].edges()) if second_best_model_key in trained_models and hasattr(trained_models[second_best_model_key], 'edges') else 'N/A'
-            second_best_model = trained_models[second_best_model_key]
+        if not filtered_results.empty:
+            best_row = filtered_results.iloc[0]
+            best_model_key = f"{best_row['Algorithm']}_{best_row['Score_method']}_{int(best_row['Sample_Size'])}"
+            best_score = best_row['BDeu_Score']
+            best_model_edges = len(trained_models[best_model_key].edges()) if best_model_key in trained_models and hasattr(trained_models[best_model_key], 'edges') else 'N/A'
+            best_model = trained_models[best_model_key]
+            now = datetime.now()
+            timestamp_str = now.strftime("%Y%m%d_%H%M%S")
+            filename_best = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges_{best_model_edges}_{timestamp_str}.pkl"
+            with open(filename_best, 'wb') as f:
+                pickle.dump(best_model, f)
+            print(f"\nEl mejor modelo ha sido guardado en: {filename_best}")
 
-            filename_second_best = f"./models/segundo_mejor_modelo_{second_best_model_key}_bDeuScore{second_best_score:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
-            with open(filename_second_best, 'wb') as f:
-                pickle.dump(second_best_model, f)
-            print(f"El segundo mejor modelo ha sido guardado en: {filename_second_best}")
-            
-            # Assign best_model for subsequent operations like Markov blanket and image saving
-            # This ensures 'best_model' variable is correctly assigned even if only one model was trained.
-            # The original best_model assignment is kept for clarity for the top model.
+            # --- Guardar el segundo mejor modelo ---
+            if len(filtered_results) > 1:
+                second_best_row = filtered_results.iloc[1]
+                second_best_model_key = f"{second_best_row['Algorithm']}_{second_best_row['Score_method']}_{int(second_best_row['Sample_Size'])}"
+                second_best_score = second_best_row['BDeu_Score']
+                second_best_model_edges = len(trained_models[second_best_model_key].edges()) if second_best_model_key in trained_models and hasattr(trained_models[second_best_model_key], 'edges') else 'N/A'
+                if second_best_model_key in trained_models:
+                    second_best_model = trained_models[second_best_model_key]
+                    filename_second_best = f"./models/segundo_mejor_modelo_{second_best_model_key}_bDeuScore{second_best_score:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
+                    with open(filename_second_best, 'wb') as f:
+                        pickle.dump(second_best_model, f)
+                    print(f"El segundo mejor modelo ha sido guardado en: {filename_second_best}")
+                else:
+                    print("[ADVERTENCIA] No se encontró el segundo mejor modelo en trained_models.")
+            else:
+                print("No hay un segundo mejor modelo para guardar.")
         else:
-            print("No hay un segundo mejor modelo para guardar.")
-            # best_model is already assigned from the top model if it exists
+            print("[ADVERTENCIA] No hay modelos válidos tras filtrar por la condición de PC. No se puede guardar el mejor modelo ni el segundo mejor.")
+            best_model = None
     else:
         print("[ADVERTENCIA] No se entrenaron modelos, no se puede guardar el mejor modelo ni el segundo mejor.")
         best_model = None # Ensure best_model is None if no models were trained
