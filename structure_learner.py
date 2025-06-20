@@ -104,7 +104,7 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
                      raise TypeError(f"Model returned by PC ({scoring_method}) is not a DAG object or similar (type: {type(model)}).")
                 print("Edges encontrados:", model.edges())    
                 bn_model = DiscreteBayesianNetwork()
-                bn_model.add_nodes_from(df.columns)
+                bn_model.add_nodes_from(model.nodes())
                 bn_model.add_edges_from(model.edges())
         elif algorithm == 'mmhc':
             print("\\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
