@@ -274,10 +274,29 @@ def main():
                     expert_knowledge=expert_knowledge,
                     enforce_expert_knowledge=enforce_expert_knowledge
                 )
+                # --- Calcular score de manera robusta incluso si el modelo no tiene todos los nodos ---
                 model_variables = set(var for edge in model.edges() for var in edge)
-                # Use train_df_encoded for calculating structure score
-                df_filtered = train_encoded[list(model_variables)] 
-                score = structure_score(model, df_filtered, scoring_method="bdeu")
+                # Asegura que estén todos los nodos en el modelo (importante para PC)
+                for col in df_to_sl.columns:
+                    if col not in model.nodes():
+                        model.add_node(col)
+                # Para el score, si faltan columnas en model_variables, usa todas las columnas del DataFrame
+                if len(model_variables) == 0:
+                    # Si el modelo no tiene aristas, usa todas las columnas
+                    df_filtered = train_encoded[df_to_sl.columns]
+                else:
+                    # Si tiene aristas, pero faltan nodos, igual usa todas las columnas
+                    missing_vars = set(df_to_sl.columns) - model_variables
+                    if missing_vars:
+                        print(f"[ADVERTENCIA] El modelo no contiene todas las variables. Faltan: {missing_vars}. Se usará todo el DataFrame para el score.")
+                        df_filtered = train_encoded[df_to_sl.columns]
+                    else:
+                        df_filtered = train_encoded[list(model_variables)]
+                try:
+                    score = structure_score(model, df_filtered, scoring_method="bdeu")
+                except Exception as e:
+                    print(f"[ERROR] No se pudo calcular el score: {e}. Se asigna NaN.")
+                    score = np.nan
                 print("Calidad de red BDeue:", score)
                 elapsed_time = time.time() - start_time
                 key = f"{algorithm}_{score_method}_{sample_size}"
@@ -337,7 +356,7 @@ def main():
             # --- Guardar el segundo mejor modelo ---
             if len(filtered_results) > 1:
                 second_best_row = filtered_results.iloc[1]
-                second_best_model_key = f"{second_best_row['Algorithm']}_{second_best_row['Score_method']}_{int(second_best_row['Sample_Size'])}"
+                second_best_model_key = f"./models/segundo_mejor_modelo_{second_best_row['Algorithm']}_{second_best_row['Score_method']}_{int(second_best_row['Sample_Size'])}_bDeuScore{second_best_row['BDeu_Score']:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
                 second_best_score = second_best_row['BDeu_Score']
                 second_best_model_edges = len(trained_models[second_best_model_key].edges()) if second_best_model_key in trained_models and hasattr(trained_models[second_best_model_key], 'edges') else 'N/A'
                 if second_best_model_key in trained_models:
