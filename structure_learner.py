@@ -356,7 +356,7 @@ def main():
             # --- Guardar el segundo mejor modelo ---
             if len(filtered_results) > 1:
                 second_best_row = filtered_results.iloc[1]
-                second_best_model_key = f"./models/segundo_mejor_modelo_{second_best_row['Algorithm']}_{second_best_row['Score_method']}_{int(second_best_row['Sample_Size'])}_bDeuScore{second_best_row['BDeu_Score']:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
+                second_best_model_key = f"{second_best_row['Algorithm']}_{second_best_row['Score_method']}_{int(second_best_row['Sample_Size'])}"
                 second_best_score = second_best_row['BDeu_Score']
                 second_best_model_edges = len(trained_models[second_best_model_key].edges()) if second_best_model_key in trained_models and hasattr(trained_models[second_best_model_key], 'edges') else 'N/A'
                 if second_best_model_key in trained_models:
