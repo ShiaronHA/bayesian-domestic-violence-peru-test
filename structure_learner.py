@@ -224,9 +224,9 @@ def main():
                 df_to_sl=sample_data
                 
             # Validación: si es PC y sample_size == 50000, saltar este experimento    
-            if algorithm == 'pc' and sample_size > 100000: 
-                print (f"[AVISO] se omite PC con sample_size>100000") # Adjusted message to reflect 50000
-                continue
+            # if algorithm == 'pc' and sample_size > 100000: 
+            #     print (f"[AVISO] se omite PC con sample_size>100000") # Adjusted message to reflect 50000
+            #     continue
             
             expert_knowledge = None
             enforce_expert_knowledge  = False
