@@ -307,7 +307,7 @@ def main():
                                 'Algorithm': algorithm,
                                 'Sample_Size': sample_size,
                                 'Training_Time_Seconds': elapsed_time,
-                                'Number_of_Edges': len(model),
+                                'Number_of_Edges': len(model.edges()),
                                 'Number_of_df_variables': len(df_to_sl.columns)
                                 })
             except Exception as e:
