@@ -16,10 +16,6 @@ DiscreteBayesianNetwork with 31 nodes and 81 edges,-5762352.686,bic-d,GES,100000
 DiscreteBayesianNetwork with 31 nodes and 84 edges,-5764140.071,bic-cg,GES,100000,609.9183326,84,31
 DiscreteBayesianNetwork with 31 nodes and 83 edges,-5765236.41,bdeu,hill_climb,50000,5.939203024,83,31
 DiscreteBayesianNetwork with 31 nodes and 84 edges,-5768362.873,bic-cg,GES,150000,1099.211919,84,31
-DiscreteBayesianNetwork with 31 nodes and 121 edges,-5771404.765,k2,hill_climb,100000,14.89841843,121,31
-DiscreteBayesianNetwork with 31 nodes and 121 edges,-5771468.05,k2,hill_climb,150000,17.24839187,121,31
-DiscreteBayesianNetwork with 31 nodes and 126 edges,-5771677.875,k2,hill_climb,200000,21.66445756,126,31
-DiscreteBayesianNetwork with 31 nodes and 126 edges,-5772560.748,k2,hill_climb,330504,30.68604612,126,31
 DiscreteBayesianNetwork with 31 nodes and 70 edges,-5776458.15,bic-cg,GES,50000,239.1948173,70,31
 DiscreteBayesianNetwork with 31 nodes and 69 edges,-5780070.514,bic-d,hill_climb,50000,4.568944693,69,31
 DiscreteBayesianNetwork with 31 nodes and 71 edges,-5780072.677,bdeu,hill_climb,20000,3.427236319,71,31
@@ -28,10 +24,7 @@ DiscreteBayesianNetwork with 31 nodes and 66 edges,-5787108.469,bdeu,hill_climb,
 DiscreteBayesianNetwork with 31 nodes and 65 edges,-5787620.535,bic-d,hill_climb,20000,2.970633507,65,31
 DiscreteBayesianNetwork with 31 nodes and 62 edges,-5790594.058,bic-d,GES,20000,3.4436903,62,31
 DiscreteBayesianNetwork with 31 nodes and 62 edges,-5793594.87,bic-cg,GES,20000,109.7780213,62,31
-DiscreteBayesianNetwork with 31 nodes and 113 edges,-5796722.948,k2,hill_climb,50000,10.77977538,113,31
-DiscreteBayesianNetwork with 31 nodes and 94 edges,-5804533.648,k2,hill_climb,20000,4.857535362,94,31
 DiscreteBayesianNetwork with 31 nodes and 53 edges,-5809190.686,bic-d,hill_climb,10000,2.352192879,53,31
-DiscreteBayesianNetwork with 31 nodes and 88 edges,-5814483.295,k2,hill_climb,10000,3.427287817,88,31
 DiscreteBayesianNetwork with 31 nodes and 53 edges,-5816216.921,bic-cg,GES,10000,62.35624027,53,31
 DiscreteBayesianNetwork with 31 nodes and 49 edges,-5821691.486,bic-d,GES,10000,2.357690811,49,31
 DiscreteBayesianNetwork with 31 nodes and 28 edges,-5962349.444,chi_square,pc,10000,18.19424224,28,31

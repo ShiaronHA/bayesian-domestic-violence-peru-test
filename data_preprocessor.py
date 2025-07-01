@@ -53,6 +53,7 @@ def decode_dataframe(df, meta):
         A decoded DataFrame.
     """
     df_decoded = df.copy()
+    
     for col in df.columns:
         if col in meta.variable_value_labels:
             value_labels = meta.variable_value_labels[col]
