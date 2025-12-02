@@ -99,7 +99,7 @@ def main():
 
     print("\nIniciando el aprendizaje del DAG con LLM...")
 
-    llm_models = [ "gemini/gemini-2.0-flash"] #"gpt-4",
+    llm_models = [ "gemini/gemini-2.0-flash", "gemini/gemini-pro"] #"gpt-4",
     results = []
 
     for llm_model in llm_models:
