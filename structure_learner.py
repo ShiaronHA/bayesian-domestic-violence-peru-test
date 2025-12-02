@@ -293,16 +293,23 @@ def main():
                     else:
                         df_filtered = train_encoded[list(model_variables)]
                 try:
-                    score = structure_score(model, df_filtered, scoring_method="bdeu")
+                    score_bdeu = structure_score(model, df_filtered, scoring_method="bdeu")
                 except Exception as e:
-                    print(f"[ERROR] No se pudo calcular el score: {e}. Se asigna NaN.")
-                    score = np.nan
-                print("Calidad de red BDeue:", score)
+                    print(f"[ERROR] No se pudo calcular el BDeu score: {e}. Se asigna NaN.")
+                    score_bdeu = np.nan
+                try:
+                    score_bic = structure_score(model, df_filtered, scoring_method="bic-d")
+                except Exception as e:
+                    print(f"[ERROR] No se pudo calcular el BIC score: {e}. Se asigna NaN.")
+                    score_bic = np.nan
+                print("Calidad de red BDeue:", score_bdeu)
+                print("Calidad de red BIC:", score_bic)
                 elapsed_time = time.time() - start_time
                 key = f"{algorithm}_{score_method}_{sample_size}"
                 trained_models[key] = model
                 results.append({'Model': model,
-                                'BDeu_Score': score,
+                                'BDeu_Score': score_bdeu,
+                                'BIC_Score': score_bic,
                                 'Score_method': score_method,
                                 'Algorithm': algorithm,
                                 'Sample_Size': sample_size,
@@ -340,31 +347,34 @@ def main():
                 filtered_results = filtered_results.drop(idx)
         filtered_results = filtered_results.reset_index(drop=True)
 
+        # Ordenar por BIC_Score (mayor es mejor)
+        filtered_results = filtered_results.sort_values(by='BIC_Score', ascending=False).reset_index(drop=True)
+
         if not filtered_results.empty:
             best_row = filtered_results.iloc[0]
             best_model_key = f"{best_row['Algorithm']}_{best_row['Score_method']}_{int(best_row['Sample_Size'])}"
-            best_score = best_row['BDeu_Score']
+            best_score = best_row['BIC_Score']
             best_model_edges = len(trained_models[best_model_key].edges()) if best_model_key in trained_models and hasattr(trained_models[best_model_key], 'edges') else 'N/A'
             best_model = trained_models[best_model_key]
             now = datetime.now()
             timestamp_str = now.strftime("%Y%m%d_%H%M%S")
-            filename_best = f"./models/mejor_modelo_{best_model_key}_bDeuScore{best_score:.2f}_edges_{best_model_edges}_{timestamp_str}.pkl"
+            filename_best = f"./models/mejor_modelo_BIC_{best_model_key}_bicScore{best_score:.2f}_edges_{best_model_edges}_{timestamp_str}.pkl"
             with open(filename_best, 'wb') as f:
                 pickle.dump(best_model, f)
-            print(f"\nEl mejor modelo ha sido guardado en: {filename_best}")
+            print(f"\nEl mejor modelo (BIC) ha sido guardado en: {filename_best}")
 
             # --- Guardar el segundo mejor modelo ---
             if len(filtered_results) > 1:
                 second_best_row = filtered_results.iloc[1]
                 second_best_model_key = f"{second_best_row['Algorithm']}_{second_best_row['Score_method']}_{int(second_best_row['Sample_Size'])}"
-                second_best_score = second_best_row['BDeu_Score']
+                second_best_score = second_best_row['BIC_Score']
                 second_best_model_edges = len(trained_models[second_best_model_key].edges()) if second_best_model_key in trained_models and hasattr(trained_models[second_best_model_key], 'edges') else 'N/A'
                 if second_best_model_key in trained_models:
                     second_best_model = trained_models[second_best_model_key]
-                    filename_second_best = f"./models/segundo_mejor_modelo_{second_best_model_key}_bDeuScore{second_best_score:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
+                    filename_second_best = f"./models/segundo_mejor_modelo_BIC_{second_best_model_key}_bicScore{second_best_score:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
                     with open(filename_second_best, 'wb') as f:
                         pickle.dump(second_best_model, f)
-                    print(f"El segundo mejor modelo ha sido guardado en: {filename_second_best}")
+                    print(f"El segundo mejor modelo (BIC) ha sido guardado en: {filename_second_best}")
                 else:
                     print("[ADVERTENCIA] No se encontró el segundo mejor modelo en trained_models.")
             else:
