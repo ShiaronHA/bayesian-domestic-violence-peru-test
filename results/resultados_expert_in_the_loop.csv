@@ -1,0 +1,3 @@
+Model,BDeu_Score,BIC_Score,Score_method,Algorithm,Sample_Size,Training_Time_Seconds,Number_of_Edges,Number_of_df_variables
+DiscreteBayesianNetwork with 31 nodes and 50 edges,-5809149.460737304,-5815876.553359585,BDeu,gemini/gemini-2.0-flash,330504,37665.49178957939,50,31
+DiscreteBayesianNetwork with 31 nodes and 50 edges,-5809149.460737304,-5815876.553359585,BDeu,gemini/gemini-pro,330504,37917.97785997391,50,31
