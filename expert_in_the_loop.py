@@ -99,67 +99,75 @@ def main():
 
     print("\nIniciando el aprendizaje del DAG con LLM...")
 
-    llm_models = [ "gemini/gemini-2.0-flash", "gemini/gemini-pro"] #"gpt-4",
+    llm_models = [ "gemini/gemini-2.0-flash"] #, "gemini/gemini-pro"
     results = []
-    effect_size_threshold = 0.0001  # 0.01
-    for llm_model in llm_models:
-        print(f"\nEntrenando con LLM: {llm_model}")
-        start_time = time.time()
-        try:
-            dag = estimator.estimate(pval_threshold=0.05, 
-                                    effect_size_threshold=effect_size_threshold, 
-                                    variable_descriptions=descriptions,
-                                    use_llm=True,
-                                    llm_model=llm_model)
-            
-            elapsed_time = time.time() - start_time
-            
-            # Guardar el model aprendido
-            bn_model = DiscreteBayesianNetwork()
-            bn_model.add_nodes_from(train_df_for_eil.columns)
-            bn_model.add_edges_from(dag.edges())
-            
-            # Calcular score
-            # Asegura que estén todos los nodos en el modelo
-            for col in train_df_for_eil.columns:
-                if col not in bn_model.nodes():
-                    bn_model.add_node(col)
-            
+    # Experimentos con diferentes effect_size_threshold
+    experimentos = [
+        #{"effect_size_threshold": 0.0001, "pval_threshold": 0.05},
+        {"effect_size_threshold": 0.20, "pval_threshold": 0.05}
+    ]
+    for exp in experimentos:
+        effect_size_threshold = exp["effect_size_threshold"]
+        pval_threshold = exp["pval_threshold"]
+        for llm_model in llm_models:
+            print(f"\nEntrenando con LLM: {llm_model} | effect_size_threshold={effect_size_threshold} | pval_threshold={pval_threshold}")
+            start_time = time.time()
             try:
-                score_bdeu = structure_score(bn_model, train_df_for_eil, scoring_method="bdeu")
-            except Exception as e:
-                print(f"[ERROR] No se pudo calcular el BDeu score para {llm_model}: {e}. Se asigna NaN.")
-                score_bdeu = np.nan
-            try:
-                score_bic = structure_score(bn_model, train_df_for_eil, scoring_method="bic-d")
-            except Exception as e:
-                print(f"[ERROR] No se pudo calcular el BIC score para {llm_model}: {e}. Se asigna NaN.")
-                score_bic = np.nan
-            print(f"Calidad de red BDeue ({llm_model}):", score_bdeu)
-            print(f"Calidad de red BIC ({llm_model}):", score_bic)
+                dag = estimator.estimate(pval_threshold=pval_threshold, 
+                                        effect_size_threshold=effect_size_threshold,
+                                        variable_descriptions=descriptions,
+                                        use_llm=True,
+                                        llm_model=llm_model)
+                
+                elapsed_time = time.time() - start_time
+                
+                # Guardar el model aprendido
+                bn_model = DiscreteBayesianNetwork()
+                bn_model.add_nodes_from(train_df_for_eil.columns)
+                bn_model.add_edges_from(dag.edges())
+                
+                # Calcular score
+                # Asegura que estén todos los nodos en el modelo
+                for col in train_df_for_eil.columns:
+                    if col not in bn_model.nodes():
+                        bn_model.add_node(col)
+                
+                try:
+                    score_bdeu = structure_score(bn_model, train_df_for_eil, scoring_method="bdeu")
+                except Exception as e:
+                    print(f"[ERROR] No se pudo calcular el BDeu score para {llm_model}: {e}. Se asigna NaN.")
+                    score_bdeu = np.nan
+                try:
+                    score_bic = structure_score(bn_model, train_df_for_eil, scoring_method="bic-d")
+                except Exception as e:
+                    print(f"[ERROR] No se pudo calcular el BIC score para {llm_model}: {e}. Se asigna NaN.")
+                    score_bic = np.nan
+                print(f"Calidad de red BDeue ({llm_model}):", score_bdeu)
+                print(f"Calidad de red BIC ({llm_model}):", score_bic)
 
-            results.append({
-                'Model': bn_model,
-                'BDeu_Score': score_bdeu,
-                'BIC_Score': score_bic,
-                'Score_method': 'BDeu',
-                'Algorithm': llm_model,
-                'Sample_Size': len(train_df_for_eil),
-                'Training_Time_Seconds': elapsed_time,
-                'Number_of_Edges': len(bn_model.edges()),
-                'Number_of_df_variables': len(train_df_for_eil.columns),
-                'Effect_Size_Threshold': effect_size_threshold
-            })
-            
-            #Guardar el DAG aprendido individualmente
-            safe_llm_name = llm_model.replace('/', '_').replace('-', '_')
-            filename = f"./models/dag_aprendido_with_llm_{safe_llm_name}_bicScore{score_bic:.2f}_effect{effect_size_threshold}.pkl"
-            with open(filename, 'wb') as f:
-                pickle.dump(bn_model, f)
-            print(f"El DAG aprendido ({llm_model}) ha sido guardado en: {filename}")
+                results.append({
+                    'Model': bn_model,
+                    'BDeu_Score': score_bdeu,
+                    'BIC_Score': score_bic,
+                    'Score_method': 'BDeu',
+                    'Algorithm': llm_model,
+                    'Sample_Size': len(train_df_for_eil),
+                    'Training_Time_Seconds': elapsed_time,
+                    'Number_of_Edges': len(bn_model.edges()),
+                    'Number_of_df_variables': len(train_df_for_eil.columns),
+                    'Effect_Size_Threshold': effect_size_threshold,
+                    'Pval_Threshold': pval_threshold
+                })
+                
+                #Guardar el DAG aprendido individualmente
+                safe_llm_name = llm_model.replace('/', '_').replace('-', '_')
+                filename = f"./models/dag_aprendido_with_llm_{safe_llm_name}_bicScore{score_bic:.2f}_effect{effect_size_threshold}_pval{pval_threshold}.pkl"
+                with open(filename, 'wb') as f:
+                    pickle.dump(bn_model, f)
+                print(f"El DAG aprendido ({llm_model}) ha sido guardado en: {filename}")
 
-        except Exception as e:
-            print(f"[ERROR] Falló ExpertInLoop con {llm_model}: {e}")
+            except Exception as e:
+                print(f"[ERROR] Falló ExpertInLoop con {llm_model}: {e}")
 
     # Crear DataFrame de resultados
     results_eil = pd.DataFrame(results)
