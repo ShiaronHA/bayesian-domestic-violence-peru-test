@@ -103,7 +103,7 @@ def main():
     results = []
     # Experimentos con diferentes effect_size_threshold
     experimentos = [
-        #{"effect_size_threshold": 0.0001, "pval_threshold": 0.05},
+        {"effect_size_threshold": 0.0001, "pval_threshold": 0.05},
         {"effect_size_threshold": 0.20, "pval_threshold": 0.05}
     ]
     for exp in experimentos:
@@ -177,7 +177,7 @@ def main():
         print("\nTabla comparativa de resultados (ExpertInLoop):")
         print(results_eil.to_string(index=False))
         
-        comparison_file_path = os.path.join('./results', 'resultados_expert_in_the_loop_effect_size_0.0001.csv')
+        comparison_file_path = os.path.join('./results', 'resultados_expert_in_the_loop.csv')
         results_eil.to_csv(comparison_file_path, index=False)
         print(f"Resultados guardados en: {comparison_file_path}")
     else:
