@@ -77,7 +77,7 @@ def bayesian_inference_exact(model, evidences_df, variable_name, model_name):
             print(f"[WARNING] Could not load previous results from '{result_file_path}': {e}. Restarting.")
 
     total_max_predictions = 100
-    batch_size = 7
+    batch_size = 5
     num_total_to_process = min(total_max_predictions, evidences_df.shape[0])
 
     if start_case_index >= num_total_to_process:
