@@ -77,7 +77,7 @@ def bayesian_inference_exact(model, evidences_df, variable_name, model_name):
             print(f"[WARNING] Could not load previous results from '{result_file_path}': {e}. Restarting.")
 
     total_max_predictions = 100
-    batch_size = 5
+    batch_size = 7
     num_total_to_process = min(total_max_predictions, evidences_df.shape[0])
 
     if start_case_index >= num_total_to_process:
@@ -252,7 +252,7 @@ def main():
     """
     # Set model name and path
     model = 'hc'  # Change to 'gemini' or other as needed
-    model_path = './models/mejor_modelo_hill_climb_bdeu_330504_bDeuScore-5747034.23_edges_109_20250626_052239.pkl'  # Update as needed
+    model_path = './models/mejor_modelo_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'  # Update as needed
     print(f"Loading model from: {model_path}")
     # Load datasets
     train_encoded = pd.read_csv('./datasets/train_encoded.csv')

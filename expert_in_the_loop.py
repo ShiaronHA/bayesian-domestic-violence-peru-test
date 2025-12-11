@@ -95,7 +95,7 @@ def main():
     "HIJOS_VIVIENTES": "¿La victima tiene hijos vivientes?"
     }
 
-    estimator = ExpertInLoop(train_df_for_eil) # Use the NaN-dropped version
+    estimator = ExpertInLoop(train_df_for_eil) 
 
     print("\nIniciando el aprendizaje del DAG con LLM...")
 
