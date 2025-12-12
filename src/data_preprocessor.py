@@ -10,16 +10,32 @@ from scipy.cluster.hierarchy import linkage, fcluster
 import json
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import LocalOutlierFactor
+import logging
 
-for directory in ["models", "uploads", "datasets", "results", "plots", "data" ]:
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-        
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # Define the input and output paths based on the project structure
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Assuming this script is in src/, go up one level to project root
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 INPUT_DATA_DIR = os.path.join(BASE_DIR, 'data', 'input_data')
 OUTPUT_DATA_DIR = os.path.join(BASE_DIR, 'datasets')
-PLOTS_DIR = os.path.join(BASE_DIR, 'plots') 
+PLOTS_DIR = os.path.join(BASE_DIR, 'plots')
+UPLOADS_DIR = os.path.join(BASE_DIR, 'uploads')
+RESULTS_DIR = os.path.join(BASE_DIR, 'results')
+MODELS_DIR = os.path.join(BASE_DIR, 'models')
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+
+# Ensure directories exist
+for directory in [MODELS_DIR, UPLOADS_DIR, OUTPUT_DATA_DIR, RESULTS_DIR, PLOTS_DIR, DATA_DIR]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        logger.info(f"Created directory: {directory}") 
 
 # List of data files to process
 DATA_FILES_INFO = [
@@ -62,7 +78,7 @@ def decode_dataframe(df, meta):
                 try:
                     normalized_value_labels[k] = normalize_text(v_label)
                 except Exception as e:
-                    print(f"Warning: Could not process label for key {k} in column {col}: {e}")
+                    logger.warning(f"Could not process label for key {k} in column {col}: {e}")
             
             df_decoded[col] = df_decoded[col].apply(lambda x: normalized_value_labels.get(x, normalize_text(str(x)) if pd.notna(x) else x))
             df_decoded[col] = df_decoded[col].astype('category')
@@ -74,25 +90,25 @@ def load_and_process_data(input_dir, files_info):
     for file_info in files_info:
         file_path = os.path.join(input_dir, file_info['name'])
         try:
-            print(f"Processing file: {file_info['name']}...")
+            logger.info(f"Processing file: {file_info['name']}...")
             df, meta = pyreadstat.read_sav(file_path)
             df_decoded = decode_dataframe(df, meta)
             all_dfs_decoded.append(df_decoded)
-            print(f"Successfully processed and decoded: {file_info['name']}")
+            logger.info(f"Successfully processed and decoded: {file_info['name']}")
         except Exception as e:
-            print(f"Error processing file {file_info['name']}: {e}")
+            logger.error(f"Error processing file {file_info['name']}: {e}")
             continue
 
     if not all_dfs_decoded:
-        print("No dataframes were loaded. Exiting.")
+        logger.error("No dataframes were loaded. Exiting.")
         return pd.DataFrame()
 
-    print("Concatenating all decoded dataframes...")
+    logger.info("Concatenating all decoded dataframes...")
     try:
         combined_df = pd.concat(all_dfs_decoded, ignore_index=True, sort=False) 
-        print("Concatenation successful.")
+        logger.info("Concatenation successful.")
     except Exception as e:
-        print(f"Error during concatenation: {e}")
+        logger.error(f"Error during concatenation: {e}")
         return pd.DataFrame()
     return combined_df
 
@@ -102,7 +118,7 @@ def plot_categorical_unique_counts(df, top_n=50, save_path=None):
     categorical_columns = df.select_dtypes(include=['category']).columns
     num_categorical_cols = len(categorical_columns)
     if categorical_columns.empty:
-        print("No categorical columns found to plot.")
+        logger.warning("No categorical columns found to plot.")
         return
 
     unique_value_counts = {col: df[col].nunique() for col in categorical_columns}
@@ -110,7 +126,7 @@ def plot_categorical_unique_counts(df, top_n=50, save_path=None):
     top_n_items = sorted_items[:top_n]
     
     if not top_n_items:
-        print(f"No data to plot after selecting top {top_n}.")
+        logger.warning(f"No data to plot after selecting top {top_n}.")
         return
 
     top_n_unique_value_counts = dict(top_n_items)
@@ -125,9 +141,9 @@ def plot_categorical_unique_counts(df, top_n=50, save_path=None):
     if save_path:
         try:
             plt.savefig(save_path, bbox_inches='tight')
-            print(f"Plot saved to {save_path}")
+            logger.info(f"Plot saved to {save_path}")
         except Exception as e:
-            print(f"Error saving plot to {save_path}: {e}")
+            logger.error(f"Error saving plot to {save_path}: {e}")
     #plt.show() 
 
 def replace_values(df, columns):
@@ -250,7 +266,7 @@ def cluster_column(df, column_name, threshold=0.8):
           unique_values = column.dropna().unique()
 
           embeddings = model.encode(unique_values.astype(str))
-          print(f'La columa {column_name}: {unique_values}')
+          logger.info(f'La columa {column_name}: {unique_values}')
           similarities = model.similarity(embeddings, embeddings)
           distance_matrix = 1 - similarities
           linkage_matrix = linkage(distance_matrix, method='ward')
@@ -263,7 +279,7 @@ def cluster_column(df, column_name, threshold=0.8):
       else:
           return column
     else:
-        print(f"La columna '{column_name}' tiene menos de 2 valores únicos. No se aplicará clustering.")
+        logger.info(f"La columna '{column_name}' tiene menos de 2 valores únicos. No se aplicará clustering.")
         return column
 
 
@@ -272,25 +288,25 @@ def update_ocupacion_columns(df):
     occupation_cols = ['OCUPACION_VICTIMA', 'OCUPACION_AGRESOR']
     for col in occupation_cols:
         if col in df.columns:
-            print(f"Processing occupation column: {col}")
+            logger.info(f"Processing occupation column: {col}")
             # Ensure the column is string type before normalize_text and clustering
             df[col] = df[col].astype(str).apply(lambda x: normalize_text(x) if pd.notna(x) else x)
             df[col +'_cluster'] = cluster_column(df, col)
         else:
-            print(f"Warning: Occupation column '{col}' not found.")
+            logger.warning(f"Occupation column '{col}' not found.")
 
     # Update original columns using cluster representatives only if cluster columns were created
     if 'OCUPACION_AGRESOR_cluster' in df.columns and 'OCUPACION_AGRESOR' in df.columns:
         cluster_representatives_agresor = df.groupby('OCUPACION_AGRESOR_cluster')['OCUPACION_AGRESOR'].first().to_dict()
         df['OCUPACION_AGRESOR'] = df['OCUPACION_AGRESOR_cluster'].map(cluster_representatives_agresor).astype('category')
     else:
-        print("Warning: OCUPACION_AGRESOR_cluster or OCUPACION_AGRESOR not found, skipping update.")
+        logger.warning("OCUPACION_AGRESOR_cluster or OCUPACION_AGRESOR not found, skipping update.")
 
     if 'OCUPACION_VICTIMA_cluster' in df.columns and 'OCUPACION_VICTIMA' in df.columns:
         cluster_representatives_victima = df.groupby('OCUPACION_VICTIMA_cluster')['OCUPACION_VICTIMA'].first().to_dict()
         df['OCUPACION_VICTIMA'] = df['OCUPACION_VICTIMA_cluster'].map(cluster_representatives_victima).astype('category')
     else:
-        print("Warning: OCUPACION_VICTIMA_cluster or OCUPACION_VICTIMA not found, skipping update.")
+        logger.warning("OCUPACION_VICTIMA_cluster or OCUPACION_VICTIMA not found, skipping update.")
             
     # Eliminar columnas que terminan en "_cluster"
     cols_to_drop = [col for col in df.columns if col.endswith('_cluster')]
@@ -301,7 +317,7 @@ def update_ocupacion_columns(df):
 
 def clean_metadata(df):
     """Cleans metadata, including clustering text fields like occupation."""
-    print("Starting metadata cleaning...")
+    logger.info("Starting metadata cleaning...")
     
     columns_to_convert = ['INFORMANTE', 'FORMA_INGRESO', 'LENGUA_MATERNA_VICTIMA','ETNIA_VICTIMA','NIVEL_EDUCATIVO_VICTIMA','OCUPACION_VICTIMA','AGRESOR_EXTRANJERO','VINCULO_PAREJA', 'VINCULO_FAMILIAR','SIN_VINCULO', 'NIVEL_EDUCATIVO_AGRESOR','OCUPACION_AGRESOR','FACTOR_VICTIMA_DISCAPACIDAD','NIVEL_DE_RIESGO_VICTIMA','LUGAR_TENTATIVA_DE_FEMINICIDIO','SITUACION_AGRESOR','TIPO_VIOLENCIA','MODALIDAD_TENTATIVA_DE_FEMINICIDIO','MOVIL_TENTATIVA_DE_FEMINICIDIO','MOVIL_TENTATIVA_DE_FEMINICIDIO','MODALIDADES_VCM','FACTOR_VICTIMA_ABUSO_CONSUMO_ALCOHOL','FACTOR_VICTIMA_CONSUME_DROGAS']
     for c in columns_to_convert:
@@ -318,12 +334,12 @@ def clean_metadata(df):
     # C. Pre-proceso previo a la clusterización automática    
     df_cleaned = update_ocupacion_columns(df_cleaned)
             
-    print("Metadata cleaning finished.")
+    logger.info("Metadata cleaning finished.")
     return df_cleaned
 
 def clean_data_not_violence_and_mistakes(df):
     """Cleans data by removing cases not classified as domestic violence and other inconsistencies."""
-    print("Starting specific data cleaning (not violence, mistakes)...")
+    logger.info("Starting specific data cleaning (not violence, mistakes)...")
 
     #A. Eliminar CONDICION == 'DERIVADO' OR 'CONTINUADOR', No cambia el fenómeno de violencia, ni agresor.
     df.drop(df[df['CONDICION'] == 'DERIVADO'].index, inplace=True)
@@ -349,10 +365,10 @@ def calculate_and_classify_violence_level(df, input_data_dir):
     df_copy = df.copy()
     geo_cols = ['DPTO_DOMICILIO', 'PROV_DOMICILIO', 'DIST_DOMICILIO']
 
-    print("Calculating and classifying violence level based on UBIGEO...")
+    logger.info("Calculating and classifying violence level based on UBIGEO...")
     
     if not all(col in df_copy.columns for col in geo_cols):
-        print("Warning: Geo columns for UBIGEO not found. Skipping violence level calculation.")
+        logger.warning("Geo columns for UBIGEO not found. Skipping violence level calculation.")
         return df 
 
     df_copy['UBIGEO'] = df_copy[geo_cols[0]].astype(str) + df_copy[geo_cols[1]].astype(str) + df_copy[geo_cols[2]].astype(str)
@@ -362,7 +378,7 @@ def calculate_and_classify_violence_level(df, input_data_dir):
         #df_ubigeo = pd.read_csv(os.path.join(input_data_dir, 'TB_UBIGEOS.csv'), delimiter=';')
         df_poblacion = pd.read_excel(os.path.join(input_data_dir, 'Poblacion_distritos.xlsx'))
     except FileNotFoundError as e:
-        print(f"Error: UBIGEO or Population file not found: {e}. Skipping violence level calculation.")
+        logger.error(f"UBIGEO or Population file not found: {e}. Skipping violence level calculation.")
         return df 
 
     df_poblacion['2022'] = pd.to_numeric(df_poblacion['2022'], errors='coerce')
@@ -483,7 +499,7 @@ def preprocess_data(df):
             if col_violence_type in df.columns:
                 df[col_violence_type] = df[col_violence_type].astype('category')
     else:
-        print("Warning: 'TIPO_VIOLENCIA' column not found. Skipping violence type mapping.")
+        logger.warning("'TIPO_VIOLENCIA' column not found. Skipping violence type mapping.")
 
     ## G. Hijos a binaria
     if 'HIJAS_VIVAS' in df.columns and 'HIJOS_VIVOS' in df.columns:
@@ -494,23 +510,23 @@ def preprocess_data(df):
     #2. Limpieza de duplicados
     initial_rows = df.shape[0]
     df = df.drop_duplicates()
-    print(f"Cantidad de registros duplicados eliminados: {initial_rows - df.shape[0]}")
+    logger.info(f"Cantidad de registros duplicados eliminados: {initial_rows - df.shape[0]}")
     
     #3. Limpieza de nulos
     umbral_nulos = 0.50 
     ratio_nulos = df.isnull().sum() / df.shape[0]
     columnas_a_eliminar_por_nulos = ratio_nulos[ratio_nulos > umbral_nulos].index
     df = df.drop(columns=columnas_a_eliminar_por_nulos)
-    print(f"Columnas eliminadas por superar el umbral de nulos ({umbral_nulos*100}%): {len(columnas_a_eliminar_por_nulos)}")
+    logger.info(f"Columnas eliminadas por superar el umbral de nulos ({umbral_nulos*100}%): {len(columnas_a_eliminar_por_nulos)}")
     
     initial_rows_before_dropna = df.shape[0]
     df.dropna(inplace=True)
-    print(f"Filas eliminadas por contener valores nulos restantes: {initial_rows_before_dropna - df.shape[0]}")
-    print (f'Nro de registros completos con {df.shape[1]} variables: {df.shape[0]}')
+    logger.info(f"Filas eliminadas por contener valores nulos restantes: {initial_rows_before_dropna - df.shape[0]}")
+    logger.info(f'Nro de registros completos con {df.shape[1]} variables: {df.shape[0]}')
     
     #4. Limpieza de outliers y ruido para EDAD_AGRESOR
     if 'EDAD_AGRESOR' in df.columns:
-        print("Starting outlier treatment for EDAD_AGRESOR...")
+        logger.info("Starting outlier treatment for EDAD_AGRESOR...")
         # Ensure 'EDAD_AGRESOR' is numeric. Original data might be float or object.
         # Coerce errors to NaN, which will be handled/dropped by outlier methods or explicitly.
         df['EDAD_AGRESOR'] = pd.to_numeric(df['EDAD_AGRESOR'], errors='coerce')
@@ -520,7 +536,7 @@ def preprocess_data(df):
 
         # Handle cases where the column might be all NaNs after coercion or mostly NaNs
         if edad_agresor_original_for_plot.empty:
-            print("EDAD_AGRESOR column is empty or all NaN after numeric conversion. Skipping outlier treatment.")
+            logger.warning("EDAD_AGRESOR column is empty or all NaN after numeric conversion. Skipping outlier treatment.")
         else:
             # --- IQR Method ---
             # Drop NaNs for IQR calculation if any survived or were introduced
@@ -536,10 +552,10 @@ def preprocess_data(df):
                 iqr_outliers_indices = df.index[
                     (df['EDAD_AGRESOR'] < lower_bound_iqr) | (df['EDAD_AGRESOR'] > upper_bound_iqr)
                 ]
-                print(f"IQR: Found {len(iqr_outliers_indices)} outliers.")
+                logger.info(f"IQR: Found {len(iqr_outliers_indices)} outliers.")
             else:
                 iqr_outliers_indices = pd.Index([])
-                print("IQR: No data for EDAD_AGRESOR after dropping NaNs.")
+                logger.warning("IQR: No data for EDAD_AGRESOR after dropping NaNs.")
 
             # --- LOF Method ---
             # LOF requires a 2D array and no NaNs.
@@ -559,17 +575,17 @@ def preprocess_data(df):
                     lof_outliers_indices_relative = df_lof_subset[lof_predictions == -1].index
                     # The indices from df_lof_subset are already original df indices because we did not reset_index
                     lof_outliers_indices = lof_outliers_indices_relative
-                    print(f"LOF: Found {len(lof_outliers_indices)} outliers using n_neighbors={n_neighbors_lof}.")
+                    logger.info(f"LOF: Found {len(lof_outliers_indices)} outliers using n_neighbors={n_neighbors_lof}.")
                 else:
                     lof_outliers_indices = pd.Index([])
-                    print("LOF: Not enough samples to apply LOF.")
+                    logger.warning("LOF: Not enough samples to apply LOF.")
             else:
                 lof_outliers_indices = pd.Index([])
-                print("LOF: No data or not enough samples for EDAD_AGRESOR after dropping NaNs.")
+                logger.warning("LOF: No data or not enough samples for EDAD_AGRESOR after dropping NaNs.")
 
             # --- Find Common Outliers ---
             common_outliers_indices = iqr_outliers_indices.intersection(lof_outliers_indices)
-            print(f"Found {len(common_outliers_indices)} common outliers using IQR and LOF.")
+            logger.info(f"Found {len(common_outliers_indices)} common outliers using IQR and LOF.")
 
             # --- Plotting ---
             plt.figure(figsize=(12, 6))
@@ -588,7 +604,7 @@ def preprocess_data(df):
                 # Use BASE_DIR for constructing path to 'uploads'
                 removed_outliers_csv_path = os.path.join(BASE_DIR, 'uploads', 'EDAD_AGRESOR_outliers_removed.csv')
                 removed_outliers_df.to_csv(removed_outliers_csv_path)
-                print(f"Saved details of removed outliers to {removed_outliers_csv_path}")
+                logger.info(f"Saved details of removed outliers to {removed_outliers_csv_path}")
 
                 # Data after removing common outliers for the "after" plot
                 edad_agresor_after_removal = df.drop(index=common_outliers_indices)['EDAD_AGRESOR'].dropna()
@@ -603,9 +619,9 @@ def preprocess_data(df):
                 
                 # --- Remove Outliers from DataFrame ---
                 df.drop(index=common_outliers_indices, inplace=True)
-                print(f"Removed {len(common_outliers_indices)} common outliers from the DataFrame.")
+                logger.info(f"Removed {len(common_outliers_indices)} common outliers from the DataFrame.")
             else:
-                print("No common outliers to remove.")
+                logger.info("No common outliers to remove.")
                 plt.subplot(1, 2, 2)
                 if not edad_agresor_original_for_plot.empty: # Show original data again if no removal
                     sns.boxplot(y=edad_agresor_original_for_plot)
@@ -617,12 +633,12 @@ def preprocess_data(df):
             plt.tight_layout()
             plot_path = os.path.join(PLOTS_DIR, 'EDAD_AGRESOR_outliers.png')
             plt.savefig(plot_path)
-            print(f"Box plot saved to {plot_path}")
+            logger.info(f"Box plot saved to {plot_path}")
             plt.close() # Close the plot to free memory
         
-        print("Finished outlier treatment for EDAD_AGRESOR.")
+        logger.info("Finished outlier treatment for EDAD_AGRESOR.")
     else:
-        print("Column 'EDAD_AGRESOR' not found, skipping outlier treatment.")
+        logger.warning("Column 'EDAD_AGRESOR' not found, skipping outlier treatment.")
     
     #4. Discretización de variables continuas
     ## Edad
@@ -736,7 +752,7 @@ def filter_cardinality(df):
     categorical_columns = df.select_dtypes(include=['category']).columns
     unique_value_counts = {col: df[col].nunique() for col in categorical_columns}
     high_cardinality_cols = [col for col, count in unique_value_counts.items() if count > 40]
-    print(f'la variable a eliminar es: {high_cardinality_cols}')
+    logger.info(f'la variable a eliminar es: {high_cardinality_cols}')
 
     #A. Eliminamos variables con mucha cardinalidad (>50)
     df.drop(high_cardinality_cols, axis=1, inplace=True)
@@ -746,7 +762,7 @@ def filter_cardinality(df):
     
     #C. Eliminamos variables con cardinalidad igual a 1.
     unique_cardinality_cols = [col for col, count in unique_value_counts.items() if count == 1]
-    print(f'las variables a eliminar son: {unique_cardinality_cols}')
+    logger.info(f'las variables a eliminar son: {unique_cardinality_cols}')
     df.drop(unique_cardinality_cols, axis=1, inplace=True)
     
     #D. Eliminamos variables binarias con una categoria menor al 3% de todos los datos
@@ -761,14 +777,14 @@ def filter_cardinality(df):
         if value_counts.min() < threshold:
             binary_cols_to_drop.append(col)
 
-    print(f'Se eliminarán estas variables binarias por baja frecuencia: {binary_cols_to_drop}')
+    logger.info(f'Se eliminarán estas variables binarias por baja frecuencia: {binary_cols_to_drop}')
     df.drop(columns=binary_cols_to_drop, inplace=True)
     
     return df
 
 def feature_selection(df):
     """Selects relevant features for analysis, dropping unnecessary columns."""
-    print("Starting feature selection...")
+    logger.info("Starting feature selection...")
     
     cols_to_exclude = ['FECHA_INGRESO', 'FORMA_INGRESO','CENTRO_POBLADO_DOMICILIO','CEM','TIPO_VIOLENCIA',
                    'INFORMANTE','DESEA_PATROCINIO_LEGAL','CUENTA_MEDIDAS_PROTECCION','FACTOR_AGRESOR_CONSUMO_ALCOHOL','FACTOR_AGRESOR_CONSUME_DROGA']
@@ -783,7 +799,7 @@ def feature_selection(df):
 
 def assign_dtypes(filepath):
         df = pd.read_csv(filepath, delimiter=',')
-        print("Forma inicial del DataFrame:", df.shape)
+        logger.info(f"Forma inicial del DataFrame: {df.shape}")
         df = df.dropna()
         # Categorización explícita de variables ordinales
         df.NIVEL_EDUCATIVO_VICTIMA = pd.Categorical(df.NIVEL_EDUCATIVO_VICTIMA,
@@ -892,38 +908,38 @@ def collect_all_categories(df):
     
 def main():
     """Main function to run the data preprocessing pipeline."""
-    print("Starting data preprocessing...")
+    logger.info("Starting data preprocessing...")
     
     for dir_path in [OUTPUT_DATA_DIR, PLOTS_DIR]:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
-            print(f"Created directory: {dir_path}")
+            logger.info(f"Created directory: {dir_path}")
 
     combined_df = load_and_process_data(INPUT_DATA_DIR, DATA_FILES_INFO)
 
     if not combined_df.empty:
-        print(f"Initial DataFrame shape: {combined_df.shape}")
-        # print(f"Initial DataFrame columns: {combined_df.columns.tolist()}") # Optional: for verbose logging
+        logger.info(f"Initial DataFrame shape: {combined_df.shape}")
+        # logger.debug(f"Initial DataFrame columns: {combined_df.columns.tolist()}") # Optional: for verbose logging
 
         # 1. Clean metadata (e.g., cluster text fields like occupation)
         combined_df = clean_metadata(combined_df)
-        print(f"DataFrame shape after metadata cleaning: {combined_df.shape}")
-        # print(f"DataFrame columns after metadata cleaning: {combined_df.columns.tolist()}") # Optional
+        logger.info(f"DataFrame shape after metadata cleaning: {combined_df.shape}")
+        # logger.debug(f"DataFrame columns after metadata cleaning: {combined_df.columns.tolist()}") # Optional
 
         # 2. Preprocess data (further cleaning, feature engineering, type conversions)
         combined_df = preprocess_data(combined_df)
-        print(f"DataFrame shape after preprocessing: {combined_df.shape}")
-        # print(f"DataFrame columns after preprocessing: {combined_df.columns.tolist()}") # Optional
+        logger.info(f"DataFrame shape after preprocessing: {combined_df.shape}")
+        # logger.debug(f"DataFrame columns after preprocessing: {combined_df.columns.tolist()}") # Optional
         
-        print("Final DataFrame types:")
-        print(combined_df.dtypes.to_string()) # Use to_string() for better console output of many dtypes
+        logger.info("Final DataFrame types:")
+        logger.info(combined_df.dtypes.to_string()) # Use to_string() for better console output of many dtypes
         
         # Seleccion de características para el análisis
         combined_df = feature_selection(combined_df)
-        print(f"DataFrame shape after feature selection: {combined_df.shape}")
+        logger.info(f"DataFrame shape after feature selection: {combined_df.shape}")
         
         combined_df = combined_df.drop_duplicates()
-        print(f"DataFrame shape after drop duplicates: {combined_df.shape}")
+        logger.info(f"DataFrame shape after drop duplicates: {combined_df.shape}")
         
         #Eliminar filas con nulos restantes
         combined_df.dropna(inplace=True)
@@ -936,19 +952,19 @@ def main():
         output_file_path = os.path.join(OUTPUT_DATA_DIR, 'df_full_processed.csv')
         try:
             # --- Print NaN counts before saving ---
-            print("\nNaN counts per column before saving df_full_processed.csv:")
+            logger.info("\nNaN counts per column before saving df_full_processed.csv:")
             nan_counts = combined_df.isnull().sum()
-            print(nan_counts[nan_counts > 0].to_string() if not nan_counts[nan_counts > 0].empty else "No NaNs found.")
-            print("--- End of NaN counts ---\n")
+            logger.info(nan_counts[nan_counts > 0].to_string() if not nan_counts[nan_counts > 0].empty else "No NaNs found.")
+            logger.info("--- End of NaN counts ---\n")
             # --- End of print NaN counts ---
             
             combined_df.to_csv(output_file_path, index=False)
-            print(f"Successfully saved fully processed data to: {output_file_path}")
+            logger.info(f"Successfully saved fully processed data to: {output_file_path}")
         except Exception as e:
-            print(f"Error saving processed data: {e}")
+            logger.error(f"Error saving processed data: {e}")
             
         # 5. Asignar dtypes a las columnas categóricas
-        filepath = 'datasets/df_full_processed.csv'
+        filepath = os.path.join(OUTPUT_DATA_DIR, 'df_full_processed.csv')
         df_encoded, df, code_to_category_map, dtype_definitions = assign_dtypes(filepath)
         # 6. Dividir el DataFrame en dos partes: una para el análisis y otra para la predicción
         
@@ -982,31 +998,35 @@ def main():
         val_df = df.loc[valid_indices].reset_index(drop=True)
         val_encoded = df_encoded.loc[valid_indices].reset_index(drop=True)
 
-        print("Train shape:", train_encoded.shape)
-        print("Validation shape:", val_encoded.shape)
+        logger.info(f"Train shape: {train_encoded.shape}")
+        logger.info(f"Validation shape: {val_encoded.shape}")
         
         # Guardar los DataFrames de entrenamiento y validación
-        train_encoded.to_csv('./datasets/train_encoded.csv', index=False)
-        train_df.to_csv('./datasets/train_df.csv', index=False)
-        val_encoded.to_csv('./datasets/val_encoded.csv', index=False)
-        val_df.to_csv('./datasets/val_df.csv', index=False)
+        train_encoded.to_csv(os.path.join(OUTPUT_DATA_DIR, 'train_encoded.csv'), index=False)
+        train_df.to_csv(os.path.join(OUTPUT_DATA_DIR, 'train_df.csv'), index=False)
+        val_encoded.to_csv(os.path.join(OUTPUT_DATA_DIR, 'val_encoded.csv'), index=False)
+        val_df.to_csv(os.path.join(OUTPUT_DATA_DIR, 'val_df.csv'), index=False)
         
         # Guardar los mapeos de códigos de categorías (anteriormente 'dict')
-        dict_file_path = os.path.join('./uploads', 'categorical_mappings.json')
+        uploads_dir = os.path.join(BASE_DIR, 'uploads')
+        if not os.path.exists(uploads_dir):
+            os.makedirs(uploads_dir)
+            
+        dict_file_path = os.path.join(uploads_dir, 'categorical_mappings.json')
         with open(dict_file_path, 'w', encoding='utf-8') as f:
             json.dump(code_to_category_map, f, indent=4, ensure_ascii=False)
-        print(f"Mapeos de códigos de categorías guardados en: {dict_file_path}")
+        logger.info(f"Mapeos de códigos de categorías guardados en: {dict_file_path}")
 
         # Guardar las definiciones de dtype
-        dtype_definitions_path = os.path.join('./uploads', 'dtype_definitions.json')
+        dtype_definitions_path = os.path.join(uploads_dir, 'dtype_definitions.json')
         with open(dtype_definitions_path, 'w', encoding='utf-8') as f:
             json.dump(dtype_definitions, f, indent=4, ensure_ascii=False)
-        print(f"Definiciones de Dtype guardadas en: {dtype_definitions_path}")
+        logger.info(f"Definiciones de Dtype guardadas en: {dtype_definitions_path}")
         
     else:
-        print("No data to process or save.")
+        logger.warning("No data to process or save.")
         
-    print("Data preprocessing finished.")
+    logger.info("Data preprocessing finished.")
 
 if __name__ == "__main__":
     main()
