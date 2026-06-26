@@ -18,6 +18,19 @@ from networkx.drawing.nx_pydot import to_pydot
 import networkx as nx
 from parameter_learner import parameter_learning
 
+# --- Paths ---
+TRAIN_ENCODED_PATH = './datasets/train_encoded.csv'
+TRAIN_DF_PATH      = './datasets/train_df.csv'
+VAL_ENCODED_PATH   = './datasets/val_encoded.csv'
+VAL_DF_PATH        = './datasets/val_df.csv'
+
+# --- Inference configuration ---
+TARGET_VARIABLE       = 'NIVEL_DE_RIESGO_VICTIMA'
+MAX_PREDICTIONS       = 100
+INFERENCE_BATCH_SIZE  = 7
+GIBBS_N_SAMPLES       = 1000
+NODES_TO_EXCLUDE      = ['TRATAMIENTO_VICTIMA', 'VIOLENCIA_ECONOMICA']  # excluded for gemini model
+
 
 def bayesian_inference_exact(model, evidences_df, variable_name, model_name):
     """
@@ -66,8 +79,8 @@ def bayesian_inference_exact(model, evidences_df, variable_name, model_name):
         except Exception as e:
             print(f"[WARNING] Could not load previous results from '{result_file_path}': {e}. Restarting.")
 
-    total_max_predictions = 100
-    batch_size = 7
+    total_max_predictions = MAX_PREDICTIONS
+    batch_size = INFERENCE_BATCH_SIZE
     num_total_to_process = min(total_max_predictions, evidences_df.shape[0])
 
     if start_case_index >= num_total_to_process:
@@ -134,8 +147,8 @@ def bayesian_inference_approximate(model, evidences_df, variable_name, n_samples
     print("\nPerforming approximate inference with Gibbs Sampling for multiple cases...")
     gibbs_sampler = GibbsSampling(model)
     all_results = []
-    total_max_predictions = 1000
-    batch_size = 7
+    total_max_predictions = len(evidences_df)
+    batch_size = INFERENCE_BATCH_SIZE
     num_total_to_process = min(total_max_predictions, evidences_df.shape[0])
     print(f"Performing approximate inference for {num_total_to_process} cases, in batches of {batch_size} (samples per case: {n_samples})...")
     for batch_start_idx in range(0, num_total_to_process, batch_size):
@@ -240,19 +253,12 @@ def main():
     """
     Main function to load data, model, perform inference, and save metrics.
     """
-    # Set model name and path
-    model = 'hc'  # Change to 'gemini' or other as needed
-    model_path = './models/best_model_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'  # Update as needed
-    print(f"Loading model from: {model_path}")
-    # Load datasets
-    train_encoded = pd.read_csv('./datasets/train_encoded.csv')
-    train_df = pd.read_csv('./datasets/train_df.csv')
-    val_encoded = pd.read_csv('./datasets/val_encoded.csv')
-    val_df = pd.read_csv('./datasets/val_df.csv')
-    print("DataFrames loaded successfully.")
-    # Remove NaNs
-    print("\n[INFO] NaN count in training DataFrame:")
-    print(train_encoded.isna().sum())
+    model = 'hc'  # options: 'hc', 'gemini'
+    model_path = './models/best_model_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'
+    train_encoded = pd.read_csv(TRAIN_ENCODED_PATH)
+    train_df      = pd.read_csv(TRAIN_DF_PATH)
+    val_encoded   = pd.read_csv(VAL_ENCODED_PATH)
+    val_df        = pd.read_csv(VAL_DF_PATH)
     train_encoded.dropna(inplace=True)
     val_encoded.dropna(inplace=True)
     # Load model
@@ -266,8 +272,7 @@ def main():
     except Exception as e:
         print(f"[ERROR] Error loading model: {e}")
         return
-    # Exclude nodes for gemini model if needed
-    nodes_to_exclude = ["TRATAMIENTO_VICTIMA", "VIOLENCIA_ECONOMICA"]
+    nodes_to_exclude = NODES_TO_EXCLUDE
     if model == "gemini":
         for node in nodes_to_exclude:
             if node in model_rb.nodes():
@@ -278,9 +283,7 @@ def main():
                     pass
                 model_rb.remove_node(node)
         val_encoded = val_encoded.drop(columns=nodes_to_exclude, errors='ignore')
-    # Evaluate Bayesian Network model
-    print("\nEvaluating Bayesian Network model...")
-    target_variable = 'NIVEL_DE_RIESGO_VICTIMA'
+    target_variable = TARGET_VARIABLE
     try:
         markov_blanket = model_rb.get_markov_blanket(target_variable)
         if not markov_blanket:

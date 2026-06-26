@@ -8,15 +8,30 @@ import pandas as pd
 import numpy as np
 from pgmpy.metrics import structure_score
 
+# --- Paths ---
+TRAIN_ENCODED_PATH = './datasets/train_encoded.csv'
+TRAIN_DF_PATH      = './datasets/train_df.csv'
+VAL_ENCODED_PATH   = './datasets/val_encoded.csv'
+VAL_DF_PATH        = './datasets/val_df.csv'
+DTYPE_DEFS_PATH    = './uploads/dtype_definitions.json'
+RESULTS_PATH       = './results/resultados_expert_in_the_loop.csv'
+
+# --- Experiment configuration ---
+LLM_MODELS = ['gemini/gemini-2.0-flash']
+EXPERIMENTS = [
+    {'effect_size_threshold': 0.0001, 'pval_threshold': 0.05},
+    {'effect_size_threshold': 0.20,   'pval_threshold': 0.05},
+]
+
 
 def main():
 
-    train_df_encoded = pd.read_csv('./datasets/train_encoded.csv')
-    train_df = pd.read_csv('./datasets/train_df.csv')
-    val_encoded = pd.read_csv('./datasets/val_encoded.csv')
-    val_df = pd.read_csv('./datasets/val_df.csv')
+    train_df_encoded = pd.read_csv(TRAIN_ENCODED_PATH)
+    train_df         = pd.read_csv(TRAIN_DF_PATH)
+    val_encoded      = pd.read_csv(VAL_ENCODED_PATH)
+    val_df           = pd.read_csv(VAL_DF_PATH)
 
-    dtype_definitions_path = './uploads/dtype_definitions.json'
+    dtype_definitions_path = DTYPE_DEFS_PATH
     if os.path.exists(dtype_definitions_path):
         with open(dtype_definitions_path, 'r', encoding='utf-8') as f:
             dtype_definitions = json.load(f)
@@ -74,20 +89,14 @@ def main():
 
     estimator = ExpertInLoop(train_df_for_eil) 
 
-    print("\nIniciando el aprendizaje del DAG con LLM...")
+    print("\nStarting DAG learning with LLM...")
 
-    llm_models = [ "gemini/gemini-2.0-flash"] #, "gemini/gemini-pro"
     results = []
-    # Experimentos con diferentes effect_size_threshold
-    experimentos = [
-        {"effect_size_threshold": 0.0001, "pval_threshold": 0.05},
-        {"effect_size_threshold": 0.20, "pval_threshold": 0.05}
-    ]
-    for exp in experimentos:
-        effect_size_threshold = exp["effect_size_threshold"]
-        pval_threshold = exp["pval_threshold"]
-        for llm_model in llm_models:
-            print(f"\nEntrenando con LLM: {llm_model} | effect_size_threshold={effect_size_threshold} | pval_threshold={pval_threshold}")
+    for exp in EXPERIMENTS:
+        effect_size_threshold = exp['effect_size_threshold']
+        pval_threshold        = exp['pval_threshold']
+        for llm_model in LLM_MODELS:
+            print(f"\nTraining with LLM: {llm_model} | effect_size_threshold={effect_size_threshold} | pval_threshold={pval_threshold}")
             start_time = time.time()
             try:
                 dag = estimator.estimate(pval_threshold=pval_threshold, 
@@ -98,12 +107,12 @@ def main():
                 
                 elapsed_time = time.time() - start_time
                 
-                # Guardar el model aprendido
+                # Save learned model
                 bn_model = DiscreteBayesianNetwork()
                 bn_model.add_nodes_from(train_df_for_eil.columns)
                 bn_model.add_edges_from(dag.edges())
                 
-                # Calcular score
+                # Compute structure score
                 # Ensure all nodes are present in the model
                 for col in train_df_for_eil.columns:
                     if col not in bn_model.nodes():
@@ -112,15 +121,15 @@ def main():
                 try:
                     score_bdeu = structure_score(bn_model, train_df_for_eil, scoring_method="bdeu")
                 except Exception as e:
-                    print(f"[ERROR] No se pudo calcular el BDeu score para {llm_model}: {e}. Se asigna NaN.")
+                    print(f"[ERROR] BDeu score failed for {llm_model}: {e}. Assigning NaN.")
                     score_bdeu = np.nan
                 try:
                     score_bic = structure_score(bn_model, train_df_for_eil, scoring_method="bic-d")
                 except Exception as e:
-                    print(f"[ERROR] No se pudo calcular el BIC score para {llm_model}: {e}. Se asigna NaN.")
+                    print(f"[ERROR] BIC score failed for {llm_model}: {e}. Assigning NaN.")
                     score_bic = np.nan
-                print(f"Calidad de red BDeue ({llm_model}):", score_bdeu)
-                print(f"Calidad de red BIC ({llm_model}):", score_bic)
+                print(f"BDeu network quality ({llm_model}):", score_bdeu)
+                print(f"BIC network quality ({llm_model}):", score_bic)
 
                 results.append({
                     'Model': bn_model,
@@ -136,12 +145,12 @@ def main():
                     'Pval_Threshold': pval_threshold
                 })
                 
-                #Guardar el DAG aprendido individualmente
+                # Save the learned DAG individually
                 safe_llm_name = llm_model.replace('/', '_').replace('-', '_')
                 filename = f"./models/learned_dag_with_llm_{safe_llm_name}_bicScore{score_bic:.2f}_effect{effect_size_threshold}_pval{pval_threshold}.pkl"
                 with open(filename, 'wb') as f:
                     pickle.dump(bn_model, f)
-                print(f"El DAG aprendido ({llm_model}) ha sido guardado en: {filename}")
+                print(f"Learned DAG ({llm_model}) saved to: {filename}")
 
             except Exception as e:
                 print(f"[ERROR] ExpertInLoop failed for {llm_model}: {e}")
@@ -151,10 +160,10 @@ def main():
     if not results_eil.empty:
         results_eil = results_eil.sort_values(by='BDeu_Score', ascending=False).reset_index(drop=True)
         
-        print("\nTabla comparativa de resultados (ExpertInLoop):")
+        print("\nComparison table of ExpertInLoop results:")
         print(results_eil.to_string(index=False))
         
-        comparison_file_path = os.path.join('./results', 'resultados_expert_in_the_loop.csv')
+        comparison_file_path = RESULTS_PATH
         results_eil.to_csv(comparison_file_path, index=False)
         print(f"Resultados guardados en: {comparison_file_path}")
     else:

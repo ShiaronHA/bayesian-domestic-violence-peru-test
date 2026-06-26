@@ -13,6 +13,36 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
+# --- Paths ---
+TRAIN_ENCODED_PATH = './datasets/train_encoded.csv'
+TRAIN_DF_PATH      = './datasets/train_df.csv'
+VAL_ENCODED_PATH   = './datasets/val_encoded.csv'
+VAL_DF_PATH        = './datasets/val_df.csv'
+DTYPE_DEFS_PATH    = './uploads/dtype_definitions.json'
+RESULTS_PATH       = './results/resultados_rb_classic.csv'
+ERRORS_PATH        = './uploads/structure_learning_classic_errors.csv'
+DAG_IMAGE_PATH     = './dag/best_model_rb_classic.png'
+
+# --- Experiment configuration ---
+SAMPLE_SIZES = [10000, 20000, 50000, 100000, 150000, 200000]  # full dataset size appended at runtime
+ALGORITHMS = [
+    ('hill_climb', 'bic-d'),
+    ('hill_climb', 'bdeu'),
+    ('pc',         'pillai'),
+    ('pc',         'chi_square'),
+    ('GES',        'bic-d'),
+    ('GES',        'bic-cg'),
+]
+MAX_INDEGREE    = 5
+MAX_ITER        = int(1e4)
+PC_MAX_COND_VARS = 5
+PC_SIGNIFICANCE  = 0.01
+RANDOM_STATE     = 42
+
+# Required edge based on domain knowledge: ethnicity determines mother tongue
+REQUIRED_EDGES = [('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')]
+TARGET_VARIABLE = 'NIVEL_DE_RIESGO_VICTIMA'
+
 
 def collect_all_categories(df):
     """
@@ -33,13 +63,13 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, expert_know
             print(f"\nLearning with Hill Climbing using {scoring_method}...")
             est = HillClimbSearch(df)
             if scoring_method == 'bic':
-                model = est.estimate(scoring_method=BIC(df), max_iter=5000, max_indegree=5)
+                model = est.estimate(scoring_method=BIC(df), max_iter=MAX_ITER, max_indegree=MAX_INDEGREE)
             elif scoring_method == 'bdeu':
-                model = est.estimate(scoring_method=BDeu(df), max_indegree=5, max_iter=int(1e4))
+                model = est.estimate(scoring_method=BDeu(df), max_indegree=MAX_INDEGREE, max_iter=MAX_ITER)
             elif scoring_method == 'k2':
-                model = est.estimate(scoring_method=K2(df), max_indegree=5, max_iter=int(1e4))
+                model = est.estimate(scoring_method=K2(df), max_indegree=MAX_INDEGREE, max_iter=MAX_ITER)
             elif scoring_method == 'bic-d':
-                model = est.estimate(scoring_method=scoring_method, max_indegree=5, max_iter=int(1e4))
+                model = est.estimate(scoring_method=scoring_method, max_indegree=MAX_INDEGREE, max_iter=MAX_ITER)
             else:
                 raise ValueError("Scoring method no soportado para Hill Climbing.")
             bn_model = DiscreteBayesianNetwork()
@@ -66,8 +96,8 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, expert_know
                 # --- Expert knowledge for PC ---
                 model = est.estimate(
                     ci_test='pillai',
-                    return_type='dag', # MODIFIED
-                    max_cond_vars=5, 
+                    return_type='dag',
+                    max_cond_vars=PC_MAX_COND_VARS,
                     n_jobs=-1,
                     expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
                     enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False
@@ -76,9 +106,9 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, expert_know
                 model = est.estimate(
                     variant='parallel',
                     ci_test='chi_square',
-                    return_type='dag', # MODIFIED from 'pdag'
-                    significance_level=0.01,
-                    max_cond_vars=5,  #3
+                    return_type='dag',
+                    significance_level=PC_SIGNIFICANCE,
+                    max_cond_vars=PC_MAX_COND_VARS,
                     expert_knowledge=expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else None,
                     enforce_expert_knowledge=enforce_expert_knowledge if (expert_knowledge and enforce_expert_knowledge) else False,
                     n_jobs=-1,
@@ -124,11 +154,10 @@ def main():
      
     errors = []
             
-    # 1. Load training and validation DataFrames
-    train_encoded = pd.read_csv('./datasets/train_encoded.csv')
-    train_df = pd.read_csv('./datasets/train_df.csv')
-    val_encoded = pd.read_csv('./datasets/val_encoded.csv')
-    val_df = pd.read_csv('./datasets/val_df.csv')
+    train_encoded = pd.read_csv(TRAIN_ENCODED_PATH)
+    train_df      = pd.read_csv(TRAIN_DF_PATH)
+    val_encoded   = pd.read_csv(VAL_ENCODED_PATH)
+    val_df        = pd.read_csv(VAL_DF_PATH)
     print("DataFrames loaded successfully.")
     print("train_df shape:", train_df.shape)
     print("train_encoded shape:", train_encoded.shape)
@@ -136,7 +165,7 @@ def main():
     print("val_encoded shape:", val_encoded.shape)
     
     # Re-apply categorical dtypes to train_df to ensure category order
-    dtype_definitions_path = './uploads/dtype_definitions.json'
+    dtype_definitions_path = DTYPE_DEFS_PATH
     if os.path.exists(dtype_definitions_path):
         with open(dtype_definitions_path, 'r', encoding='utf-8') as f:
             dtype_definitions = json.load(f)
@@ -150,31 +179,14 @@ def main():
                     print(f"  Expected categories: {defs['categories']}")
                     print(f"  Categories found in data: {list(train_df[col_name].unique()) if hasattr(train_df[col_name], 'unique') else 'N/A'}")
     
-    algorithms_to_experiment = [
-        ('hill_climb', 'bic-d'), 
-        #('hill_climb', 'k2'),
-        ('hill_climb', 'bdeu'),
-        ('pc', 'pillai'),
-        ('pc', 'chi_square'),
-	    ('GES','bic-d'),
-        ('GES', 'bic-cg')
-    ]
-    
-    size_df = train_df.shape[0]
-    
-    sample_sizes = [10000, 20000, 50000, 100000, 150000, 200000, size_df]
+    sample_sizes = SAMPLE_SIZES + [train_df.shape[0]]
     results = []
     trained_models = {}
 
-    expert_knowledge = {
-        'forbidden_edges': [],
-        'required_edges': [('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')]
-    }
-    
     for sample_size in sample_sizes:
         # Step 1: get minimum sample covering all categories
-        df_sample_min = collect_all_categories(train_df)
-        min_indices_sample = set(df_sample_min['index'])  # already selected indices
+        df_sample_min = collect_all_categories(train_df)  # guarantees all categories are represented
+        min_indices_sample = set(df_sample_min['index'])
         df_sample_min = df_sample_min.set_index('index')
 
         if sample_size < len(df_sample_min):
@@ -184,7 +196,7 @@ def main():
         # Step 2: fill remaining rows randomly up to desired sample size
         n_extra = sample_size - len(df_sample_min)
         df_remaining_sample = train_df.drop(index=min_indices_sample)
-        df_sample_extra = df_remaining_sample.sample(n=n_extra, random_state=42)
+        df_sample_extra = df_remaining_sample.sample(n=n_extra, random_state=RANDOM_STATE)
 
         sample_df = pd.concat([df_sample_min, df_sample_extra])
         sample_indices = sample_df.index
@@ -204,7 +216,7 @@ def main():
                     print(f"  Categories found in data: {list(sample_data[col_name].unique()) if hasattr(sample_data[col_name], 'unique') else 'N/A'}")
         # --- End re-apply ---
 
-        for algorithm, score_method in algorithms_to_experiment:
+        for algorithm, score_method in ALGORITHMS:
             if algorithm == 'hill_climb' or algorithm == 'pc':
                 df_to_sl=sample_data_encoded
             else:
@@ -218,12 +230,9 @@ def main():
             expert_knowledge = None
             enforce_expert_knowledge  = False
             if algorithm == 'pc':
-                expert_knowledge  = ExpertKnowledge(
-                    required_edges=[
-                        ('ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA')
-                    ],
-                    forbidden_edges=[
-                    ]
+                expert_knowledge = ExpertKnowledge(
+                    required_edges=REQUIRED_EDGES,
+                    forbidden_edges=[]
                 )
                 enforce_expert_knowledge = True
             
@@ -294,9 +303,8 @@ def main():
     
     print("\nStructure learning results:")
     print(results_structure_learning.to_string(index=False))
-    comparison_file_path = os.path.join('./results', 'resultados_rb_classic.csv')
-    results_structure_learning.to_csv(comparison_file_path, index=False)
-    print(f"Results saved to: {comparison_file_path}")
+    results_structure_learning.to_csv(RESULTS_PATH, index=False)
+    print(f"Results saved to: {RESULTS_PATH}")
     
     if not results_structure_learning.empty:
         # PC models are only valid when Number_of_Edges == Number_of_df_variables
@@ -344,8 +352,8 @@ def main():
     
     if errors:
         errors_df = pd.DataFrame(errors)
-        errors_df.to_csv('./uploads/structure_learning_classic_errors.csv', index=False)
-        print("[INFO] Errors saved to './uploads/structure_learning_classic_errors.csv'")
+        errors_df.to_csv(ERRORS_PATH, index=False)
+        print(f"[INFO] Errors saved to '{ERRORS_PATH}'")
         
     try:
         if best_model:
@@ -354,8 +362,8 @@ def main():
             nx_graph.add_edges_from(best_model.edges())
             pydot_graph = to_pydot(nx_graph)
             os.makedirs('./dag', exist_ok=True)
-            pydot_graph.write_png('./dag/best_model_rb_classic.png')
-            print('Best model image saved to ./dag/best_model_rb_classic.png')
+            pydot_graph.write_png(DAG_IMAGE_PATH)
+            print(f'Best model image saved to {DAG_IMAGE_PATH}')
         else:
             print("[WARNING] No model trained, skipping image export.")
     except Exception as e:
@@ -363,12 +371,11 @@ def main():
     
     
     if best_model:
-        target_variable = 'NIVEL_DE_RIESGO_VICTIMA'
-        if target_variable in best_model.nodes():
-            markov_blanket = best_model.get_markov_blanket(target_variable)
-            print(f"Markov Blanket of '{target_variable}':", markov_blanket)
+        if TARGET_VARIABLE in best_model.nodes():
+            markov_blanket = best_model.get_markov_blanket(TARGET_VARIABLE)
+            print(f"Markov Blanket of '{TARGET_VARIABLE}':", markov_blanket)
         else:
-            print(f"[WARNING] '{target_variable}' not found in best model nodes.")
+            print(f"[WARNING] '{TARGET_VARIABLE}' not found in best model nodes.")
     else:
         print("[WARNING] No model trained, cannot compute Markov Blanket.")
 
