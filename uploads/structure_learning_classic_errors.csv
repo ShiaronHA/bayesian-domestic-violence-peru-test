@@ -1,2 +1,0 @@
-algorithm,score_method,sample_size,error
-pc,chi_square,330504,Loops are not allowed. Adding the edge from (NIVEL_EDUCATIVO_AGRESOR->EDAD_VICTIMA) forms a loop.

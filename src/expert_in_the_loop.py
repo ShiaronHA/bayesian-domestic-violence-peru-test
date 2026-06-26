@@ -161,7 +161,7 @@ def main():
                 
                 #Guardar el DAG aprendido individualmente
                 safe_llm_name = llm_model.replace('/', '_').replace('-', '_')
-                filename = f"./models/dag_aprendido_with_llm_{safe_llm_name}_bicScore{score_bic:.2f}_effect{effect_size_threshold}_pval{pval_threshold}.pkl"
+                filename = f"./models/learned_dag_with_llm_{safe_llm_name}_bicScore{score_bic:.2f}_effect{effect_size_threshold}_pval{pval_threshold}.pkl"
                 with open(filename, 'wb') as f:
                     pickle.dump(bn_model, f)
                 print(f"El DAG aprendido ({llm_model}) ha sido guardado en: {filename}")

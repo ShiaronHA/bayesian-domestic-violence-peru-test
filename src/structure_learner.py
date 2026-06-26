@@ -358,7 +358,7 @@ def main():
             best_model = trained_models[best_model_key]
             now = datetime.now()
             timestamp_str = now.strftime("%Y%m%d_%H%M%S")
-            filename_best = f"./models/mejor_modelo_BIC_{best_model_key}_bicScore{best_score:.2f}_edges_{best_model_edges}_{timestamp_str}.pkl"
+            filename_best = f"./models/best_model_BIC_{best_model_key}_bicScore{best_score:.2f}_edges_{best_model_edges}_{timestamp_str}.pkl"
             with open(filename_best, 'wb') as f:
                 pickle.dump(best_model, f)
             print(f"\nEl mejor modelo (BIC) ha sido guardado en: {filename_best}")
@@ -371,7 +371,7 @@ def main():
                 second_best_model_edges = len(trained_models[second_best_model_key].edges()) if second_best_model_key in trained_models and hasattr(trained_models[second_best_model_key], 'edges') else 'N/A'
                 if second_best_model_key in trained_models:
                     second_best_model = trained_models[second_best_model_key]
-                    filename_second_best = f"./models/segundo_mejor_modelo_BIC_{second_best_model_key}_bicScore{second_best_score:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
+                    filename_second_best = f"./models/second_best_model_BIC_{second_best_model_key}_bicScore{second_best_score:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
                     with open(filename_second_best, 'wb') as f:
                         pickle.dump(second_best_model, f)
                     print(f"El segundo mejor modelo (BIC) ha sido guardado en: {filename_second_best}")

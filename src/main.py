@@ -34,8 +34,8 @@ def bayesian_inference_exact(model, evidences_df, variable_name, model_name):
     Perform exact inference using Belief Propagation for multiple cases.
     Results are saved after each case for robustness.
     """
-    result_file_path = os.path.join('./results', f'inferencia_exact_rb_ypred_batch_{model_name}.json')
-    calibration_error_file_path = os.path.join('./results', f'inferencia_rb_error_ypred_batch_{model_name}.json')
+    result_file_path = os.path.join('./results', f'inference_exact_rb_ypred_batch_{model_name}.json')
+    calibration_error_file_path = os.path.join('./results', f'inference_rb_error_ypred_batch_{model_name}.json')
 
     print("\nPerforming exact inference for multiple cases...")
     belief_propagation = BeliefPropagation(model)
@@ -193,7 +193,7 @@ def bayesian_inference_approximate(model, evidences_df, variable_name, n_samples
             except Exception as e:
                 print(f"    [ERROR] Error processing case {actual_case_index_in_original_df + 1} with evidence {evidence_dict} using Gibbs Sampling: {e}")
                 all_results.append({"error": str(e), "evidence_case_number": actual_case_index_in_original_df + 1, "evidence_provided": evidence_dict})
-    result_file_path = os.path.join('./results', 'inferencia_approx_gibbs_ypred_batch.json')
+    result_file_path = os.path.join('./results', 'inference_approx_gibbs_ypred_batch.json')
     try:
         with open(result_file_path, 'w', encoding='utf-8') as f:
             json.dump(all_results, f, indent=4, ensure_ascii=False)
@@ -252,7 +252,7 @@ def main():
     """
     # Set model name and path
     model = 'hc'  # Change to 'gemini' or other as needed
-    model_path = './models/mejor_modelo_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'  # Update as needed
+    model_path = './models/best_model_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'  # Update as needed
     print(f"Loading model from: {model_path}")
     # Load datasets
     train_encoded = pd.read_csv('./datasets/train_encoded.csv')
