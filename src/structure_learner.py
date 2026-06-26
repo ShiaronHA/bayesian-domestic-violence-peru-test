@@ -1,24 +1,17 @@
-from pgmpy.estimators import BayesianEstimator
 import pickle
 import os
 import json
 import time
-from sklearn.model_selection import train_test_split # Added import
-from pgmpy.models import BayesianNetwork, DiscreteBayesianNetwork
+from pgmpy.models import DiscreteBayesianNetwork
 from pgmpy.estimators import HillClimbSearch, MmhcEstimator, PC, GES
 from pgmpy.metrics import structure_score
-from pgmpy.estimators import K2, BDeu, BIC, AIC
-import matplotlib.pyplot as plt
+from pgmpy.estimators import K2, BDeu, BIC
 from networkx.drawing.nx_pydot import to_pydot
 import networkx as nx
 from pgmpy.estimators import ExpertKnowledge
 import pandas as pd
 import numpy as np
 from datetime import datetime
-
-# Aprender mejor estructura de un modelo bayesiano a partir de un DataFrame
-# Comparar modelos con 3 tamaños de muestra diferentes.
-# Usará solo el train...
 
 
 def collect_all_categories(df):
@@ -34,11 +27,10 @@ def collect_all_categories(df):
 
     return pd.concat(rows).drop_duplicates().reset_index()
    
-def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path=None, expert_knowledge=None, enforce_expert_knowledge=False):
-        df.info()
-        print("Forma de muestra del DataFrame:", df.shape)
+def learn_structure(df, algorithm='hill_climb', scoring_method=None, expert_knowledge=None, enforce_expert_knowledge=False):
+        print("Sample DataFrame shape:", df.shape)
         if algorithm == 'hill_climb':
-            print(f"\\nAprendiendo con Hill Climbing usando {scoring_method}...")
+            print(f"\nLearning with Hill Climbing using {scoring_method}...")
             est = HillClimbSearch(df)
             if scoring_method == 'bic':
                 model = est.estimate(scoring_method=BIC(df), max_iter=5000, max_indegree=5)
@@ -54,20 +46,20 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
             bn_model.add_nodes_from(df.columns)
             bn_model.add_edges_from(model.edges())
         elif algorithm == 'GES': #Causal Discovery
-            print(f"\\nAprendiendo con GES...")
+            print(f"\nLearning with GES...")
             est = GES(df)
             model = est.estimate(scoring_method=scoring_method)
             bn_model = DiscreteBayesianNetwork()
             bn_model.add_nodes_from(df.columns)
             bn_model.add_edges_from(model.edges())
         elif algorithm == 'pc':
-            print(f"\\nAprendiendo con PC...")
+            print(f"\nLearning with PC...")
             est = PC(df) # Initialize PC estimator once
 
             if scoring_method == 'pillai':
                 assert not df.isnull().values.any(), "DataFrame contains NaN values"
                 assert np.isfinite(df.to_numpy()).all(), "DataFrame contains inf values"
-                # Validación: si hay columnas con baja varianza, eliminarlas
+                # Validate: drop low-variance columns
                 low_variance_cols = [col for col in df.columns if df[col].nunique() <= 1]
                 if low_variance_cols:
                     print(f"Warning: Low-variance columns found for PC with Pillai: {low_variance_cols}")
@@ -102,16 +94,16 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
             else:
                 if not hasattr(model, 'edges'): # Defensive check
                      raise TypeError(f"Model returned by PC ({scoring_method}) is not a DAG object or similar (type: {type(model)}).")
-                print("Edges encontrados:", model.edges())    
+                print("Edges found:", model.edges())    
                 bn_model = DiscreteBayesianNetwork()
                 bn_model.add_nodes_from(model.nodes())
                 bn_model.add_edges_from(model.edges())
         elif algorithm == 'mmhc':
-            print("\\nAprendiendo con MMHC (Max-Min Hill Climbing)...")
+            print("\nLearning with MMHC (Max-Min Hill Climbing)...")
             mmhc = MmhcEstimator(df)
-            print("\nAprendiendo con MMHC (1.skeleton)...")
+            print("\nLearning MMHC step 1: skeleton...")
             skeleton = mmhc.mmpc()
-            print("\nAprendiendo con MMHC (2.hc)...")
+            print("\nLearning MMHC step 2: hill climb...")
             hc = HillClimbSearch(df)
             model = hc.estimate(
                 tabu_length=5,
@@ -125,42 +117,38 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, output_path
             bn_model.add_edges_from(model.edges())
         else:
             raise ValueError("Algoritmo no soportado.")
-        print("Estructura aprendida:", bn_model.edges())
+        print("Learned structure:", bn_model.edges())
         return bn_model
 
 def main():
      
     errors = []
             
-    # 1. Leemos los DataFrames de entrenamiento y validación
+    # 1. Load training and validation DataFrames
     train_encoded = pd.read_csv('./datasets/train_encoded.csv')
     train_df = pd.read_csv('./datasets/train_df.csv')
     val_encoded = pd.read_csv('./datasets/val_encoded.csv')
     val_df = pd.read_csv('./datasets/val_df.csv')
-    print("DataFrames cargados correctamente.")
-    print("Forma de train_df:", train_df.shape)
-    print("Forma de train_encoded:", train_encoded.shape)
-    print("Forma de val_df:", val_df.shape)
-    print("Forma de val_encoded:", val_encoded.shape)
+    print("DataFrames loaded successfully.")
+    print("train_df shape:", train_df.shape)
+    print("train_encoded shape:", train_encoded.shape)
+    print("val_df shape:", val_df.shape)
+    print("val_encoded shape:", val_encoded.shape)
     
-    # --- Cargar dtype_definitions y re-aplicar a train_df ---
+    # Re-apply categorical dtypes to train_df to ensure category order
     dtype_definitions_path = './uploads/dtype_definitions.json'
     if os.path.exists(dtype_definitions_path):
         with open(dtype_definitions_path, 'r', encoding='utf-8') as f:
             dtype_definitions = json.load(f)
-    #
-    
-    # --- Re-aplicar dtypes categóricos a sample_data para asegurar el orden ---
         for col_name, defs in dtype_definitions.items():
             if col_name in train_df.columns:
                 try:
                     cat_dtype = pd.CategoricalDtype(categories=defs['categories'], ordered=defs['ordered'])
                     train_df[col_name] = train_df[col_name].astype(cat_dtype)
                 except Exception as e:
-                    print(f"[ADVERTENCIA] No se pudo convertir la columna {col_name} al CategoricalDtype especificado: {e}")
-                    print(f"  Categorías esperadas: {defs['categories']}")
-                    print(f"  Categorías encontradas en los datos: {list(train_df[col_name].unique()) if hasattr(train_df[col_name], 'unique') else 'N/A'}")
-        # --- Fin de la re-aplicación ---
+                    print(f"[WARNING] Could not convert column '{col_name}' to specified CategoricalDtype: {e}")
+                    print(f"  Expected categories: {defs['categories']}")
+                    print(f"  Categories found in data: {list(train_df[col_name].unique()) if hasattr(train_df[col_name], 'unique') else 'N/A'}")
     
     algorithms_to_experiment = [
         ('hill_climb', 'bic-d'), 
@@ -184,38 +172,37 @@ def main():
     }
     
     for sample_size in sample_sizes:
-        # Paso 1: obtener una muestra mínima que cubra todas las categorías
+        # Step 1: get minimum sample covering all categories
         df_sample_min = collect_all_categories(train_df)
-        min_indices_sample = set(df_sample_min['index'])  # índices ya seleccionados
+        min_indices_sample = set(df_sample_min['index'])  # already selected indices
         df_sample_min = df_sample_min.set_index('index')
 
         if sample_size < len(df_sample_min):
-            print(f"[WARNING] Sample size {sample_size} is menor que el mínimo necesario {len(df_sample_min)}. Se omite esta muestra.")
+            print(f"[WARNING] Sample size {sample_size} is smaller than the minimum required ({len(df_sample_min)}). Skipping.")
             continue
 
-        # Paso 2: completar aleatoriamente desde train_df hasta el tamaño deseado
+        # Step 2: fill remaining rows randomly up to desired sample size
         n_extra = sample_size - len(df_sample_min)
         df_remaining_sample = train_df.drop(index=min_indices_sample)
         df_sample_extra = df_remaining_sample.sample(n=n_extra, random_state=42)
 
-        # Formar conjunto final de muestra
         sample_df = pd.concat([df_sample_min, df_sample_extra])
         sample_indices = sample_df.index
 
         sample_data = train_df.loc[sample_indices].reset_index(drop=True)
         sample_data_encoded = train_encoded.loc[sample_indices].reset_index(drop=True)
 
-        # --- Re-aplicar dtypes categóricos a sample_data para asegurar el orden ---
+        # --- Re-apply categorical dtypes to sample_data to ensure category order ---
         for col_name, defs in dtype_definitions.items():
             if col_name in sample_data.columns:
                 try:
                     cat_dtype = pd.CategoricalDtype(categories=defs['categories'], ordered=defs['ordered'])
                     sample_data[col_name] = sample_data[col_name].astype(cat_dtype)
                 except Exception as e:
-                    print(f"[ADVERTENCIA] No se pudo convertir la columna {col_name} al CategoricalDtype especificado: {e}")
-                    print(f"  Categorías esperadas: {defs['categories']}")
-                    print(f"  Categorías encontradas en los datos: {list(sample_data[col_name].unique()) if hasattr(sample_data[col_name], 'unique') else 'N/A'}")
-        # --- Fin de la re-aplicación ---
+                    print(f"[WARNING] Could not convert column '{col_name}' to specified CategoricalDtype: {e}")
+                    print(f"  Expected categories: {defs['categories']}")
+                    print(f"  Categories found in data: {list(sample_data[col_name].unique()) if hasattr(sample_data[col_name], 'unique') else 'N/A'}")
+        # --- End re-apply ---
 
         for algorithm, score_method in algorithms_to_experiment:
             if algorithm == 'hill_climb' or algorithm == 'pc':
@@ -223,7 +210,7 @@ def main():
             else:
                 df_to_sl=sample_data
                 
-            # Validación: si es PC y sample_size == 50000, saltar este experimento    
+        # Note: PC with large sample sizes can be very slow
             # if algorithm == 'pc' and sample_size > 100000: 
             #     print (f"[AVISO] se omite PC con sample_size>100000") # Adjusted message to reflect 50000
             #     continue
@@ -240,29 +227,7 @@ def main():
                 )
                 enforce_expert_knowledge = True
             
-            # # Debugging for PC Pillai specifically for the failing case
-            # if algorithm == 'pc' and score_method == 'pillai' and sample_size == 10000:
-            #     print("\\n--- DEBUG INFO FOR PC PILLAI (sample_size=10000) ---")
-            #     problematic_vars = ['ETNIA_VICTIMA', 'LENGUA_MATERNA_VICTIMA']
-            #     for var_name in problematic_vars:
-            #         if var_name in df_to_sl.columns:
-            #             print(f"Value counts for {var_name} in df_to_sl (shape: {df_to_sl.shape}):")
-            #             print(df_to_sl[var_name].value_counts(dropna=False))
-            #             print(f"Description for {var_name}:")
-            #             print(df_to_sl[var_name].describe())
-            #             print(f"Is {var_name} all NaN? {df_to_sl[var_name].isnull().all()}")
-            #             print(f"Number of unique values for {var_name}: {df_to_sl[var_name].nunique()}")
-            #         else:
-            #             print(f"Variable {var_name} not in df_to_sl.columns")
-            #     # print(f"Expert knowledge for this run: {active_expert_knowledge.rules if active_expert_knowledge else 'None'}") # Old line
-            #     if active_expert_knowledge:
-            #         print(f"Expert knowledge for this run: Required Edges: {active_expert_knowledge.required_edges}, Forbidden Edges: {active_expert_knowledge.forbidden_edges}")
-            #     else:
-            #         print("Expert knowledge for this run: None")
-            #     print(f"Enforce expert knowledge: {active_enforce_expert_knowledge}")
-            #     print("--- END DEBUG INFO ---\\n")
-
-            print(f"\\nAprendiendo estructura con {algorithm} ({score_method}) with sample size = {sample_size}...")
+            print(f"\nLearning structure with {algorithm} ({score_method}), sample size = {sample_size}...")
             start_time = time.time()
             
             try:
@@ -270,40 +235,36 @@ def main():
                     df_to_sl,
                     algorithm=algorithm,
                     scoring_method=score_method,
-                    # output_path=f'./models/model_structure_31_{algorithm}_{score_method}_{sample_size}.pkl', # User has this commented
                     expert_knowledge=expert_knowledge,
                     enforce_expert_knowledge=enforce_expert_knowledge
                 )
-                # --- Calcular score de manera robusta incluso si el modelo no tiene todos los nodos ---
                 model_variables = set(var for edge in model.edges() for var in edge)
-                # Asegura que estén todos los nodos en el modelo (importante para PC)
+                # Ensure all model nodes are present (important for PC)
                 for col in df_to_sl.columns:
                     if col not in model.nodes():
                         model.add_node(col)
                 # Para el score, si faltan columnas en model_variables, usa todas las columnas del DataFrame
                 if len(model_variables) == 0:
-                    # Si el modelo no tiene aristas, usa todas las columnas
                     df_filtered = train_encoded[df_to_sl.columns]
                 else:
-                    # Si tiene aristas, pero faltan nodos, igual usa todas las columnas
                     missing_vars = set(df_to_sl.columns) - model_variables
                     if missing_vars:
-                        print(f"[ADVERTENCIA] El modelo no contiene todas las variables. Faltan: {missing_vars}. Se usará todo el DataFrame para el score.")
+                        print(f"[WARNING] Model does not contain all variables. Missing: {missing_vars}. Using full DataFrame for scoring.")
                         df_filtered = train_encoded[df_to_sl.columns]
                     else:
                         df_filtered = train_encoded[list(model_variables)]
                 try:
                     score_bdeu = structure_score(model, df_filtered, scoring_method="bdeu")
                 except Exception as e:
-                    print(f"[ERROR] No se pudo calcular el BDeu score: {e}. Se asigna NaN.")
+                    print(f"[ERROR] Could not compute BDeu score: {e}. Assigning NaN.")
                     score_bdeu = np.nan
                 try:
                     score_bic = structure_score(model, df_filtered, scoring_method="bic-d")
                 except Exception as e:
-                    print(f"[ERROR] No se pudo calcular el BIC score: {e}. Se asigna NaN.")
+                    print(f"[ERROR] Could not compute BIC score: {e}. Assigning NaN.")
                     score_bic = np.nan
-                print("Calidad de red BDeue:", score_bdeu)
-                print("Calidad de red BIC:", score_bic)
+                print("Network quality BDeu:", score_bdeu)
+                print("Network quality BIC:", score_bic)
                 elapsed_time = time.time() - start_time
                 key = f"{algorithm}_{score_method}_{sample_size}"
                 trained_models[key] = model
@@ -319,7 +280,7 @@ def main():
                                 })
             except Exception as e:
                 error_msg = str(e)
-                print(f"[ERROR] Falló {algorithm} con {score_method} y sample_size={sample_size}: {error_msg}")
+                print(f"[ERROR] Failed: {algorithm} with {score_method}, sample_size={sample_size}: {error_msg}")
                 errors.append({
                     'algorithm': algorithm,
                     'score_method': score_method,
@@ -331,23 +292,19 @@ def main():
     results_structure_learning = pd.DataFrame(results)
     results_structure_learning = results_structure_learning.sort_values(by='BDeu_Score', ascending=False).reset_index(drop=True)
     
-    print("\\nTabla comparativa de resultados:")
+    print("\nStructure learning results:")
     print(results_structure_learning.to_string(index=False))
     comparison_file_path = os.path.join('./results', 'resultados_rb_classic.csv')
     results_structure_learning.to_csv(comparison_file_path, index=False)
-    print(f"Resultados guardados en: {comparison_file_path}")
+    print(f"Results saved to: {comparison_file_path}")
     
-    # --- Guardar el mejor modelo ---
     if not results_structure_learning.empty:
-        # Filtrar modelos según la condición para 'pc'
+        # PC models are only valid when Number_of_Edges == Number_of_df_variables
         filtered_results = results_structure_learning.copy()
         for idx, row in filtered_results.iterrows():
             if row['Algorithm'] == 'pc' and row['Number_of_Edges'] != row['Number_of_df_variables']:
-                print(f"[INFO] Modelo PC con sample_size={row['Sample_Size']} descartado porque Number_of_Edges ({row['Number_of_Edges']}) != Number_of_df_variables ({row['Number_of_df_variables']})")
+                print(f"[INFO] PC model with sample_size={row['Sample_Size']} discarded: Number_of_Edges ({row['Number_of_Edges']}) != Number_of_df_variables ({row['Number_of_df_variables']})")
                 filtered_results = filtered_results.drop(idx)
-        filtered_results = filtered_results.reset_index(drop=True)
-
-        # Ordenar por BIC_Score (mayor es mejor)
         filtered_results = filtered_results.sort_values(by='BIC_Score', ascending=False).reset_index(drop=True)
 
         if not filtered_results.empty:
@@ -361,9 +318,8 @@ def main():
             filename_best = f"./models/best_model_BIC_{best_model_key}_bicScore{best_score:.2f}_edges_{best_model_edges}_{timestamp_str}.pkl"
             with open(filename_best, 'wb') as f:
                 pickle.dump(best_model, f)
-            print(f"\nEl mejor modelo (BIC) ha sido guardado en: {filename_best}")
+            print(f"\nBest model (BIC) saved to: {filename_best}")
 
-            # --- Guardar el segundo mejor modelo ---
             if len(filtered_results) > 1:
                 second_best_row = filtered_results.iloc[1]
                 second_best_model_key = f"{second_best_row['Algorithm']}_{second_best_row['Score_method']}_{int(second_best_row['Sample_Size'])}"
@@ -374,74 +330,47 @@ def main():
                     filename_second_best = f"./models/second_best_model_BIC_{second_best_model_key}_bicScore{second_best_score:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
                     with open(filename_second_best, 'wb') as f:
                         pickle.dump(second_best_model, f)
-                    print(f"El segundo mejor modelo (BIC) ha sido guardado en: {filename_second_best}")
+                    print(f"Second best model (BIC) saved to: {filename_second_best}")
                 else:
-                    print("[ADVERTENCIA] No se encontró el segundo mejor modelo en trained_models.")
+                    print("[WARNING] Second best model not found in trained_models.")
             else:
-                print("No hay un segundo mejor modelo para guardar.")
+                print("No second best model to save.")
         else:
-            print("[ADVERTENCIA] No hay modelos válidos tras filtrar por la condición de PC. No se puede guardar el mejor modelo ni el segundo mejor.")
+            print("[WARNING] No valid models after PC filtering. Cannot save best or second best model.")
             best_model = None
     else:
-        print("[ADVERTENCIA] No se entrenaron modelos, no se puede guardar el mejor modelo ni el segundo mejor.")
-        best_model = None # Ensure best_model is None if no models were trained
+        print("[WARNING] No models were trained. Cannot save best or second best model.")
+        best_model = None  # no models trained
     
-    # Guardar errores a CSV
     if errors:
         errors_df = pd.DataFrame(errors)
         errors_df.to_csv('./uploads/structure_learning_classic_errors.csv', index=False)
-        print(f"[INFO] Errores guardados en './uploads/structure_learning_classic_errors.csv'")
+        print("[INFO] Errors saved to './uploads/structure_learning_classic_errors.csv'")
         
-    # Guardar imagen del best_model en la carpeta dag
     try:
-        if best_model: # Check if best_model is not None
-            # Convertir el modelo a un grafo de networkx
-            # nx_graph = best_model.to_networkx() # Original line causing AttributeError
-            
-            # Workaround: Manually create networkx.DiGraph
+        if best_model:
             nx_graph = nx.DiGraph()
-            if hasattr(best_model, 'nodes') and hasattr(best_model, 'edges'):
-                nx_graph.add_nodes_from(best_model.nodes())
-                nx_graph.add_edges_from(best_model.edges())
-            else:
-                # This case should ideally not be reached if best_model is a valid pgmpy model
-                print("[ERROR] best_model object does not have nodes() or edges() methods.")
-                raise TypeError("best_model cannot be converted to a networkx graph.")
-
-            # Crear el objeto pydot
+            nx_graph.add_nodes_from(best_model.nodes())
+            nx_graph.add_edges_from(best_model.edges())
             pydot_graph = to_pydot(nx_graph)
-            
-            # Ensure the ./dag directory exists
             os.makedirs('./dag', exist_ok=True)
-            
-            # Guardar como imagen PNG
             pydot_graph.write_png('./dag/best_model_rb_classic.png')
-            print('Imagen del best_model guardada en ./dag/best_model.png')
+            print('Best model image saved to ./dag/best_model_rb_classic.png')
         else:
-            print("[ADVERTENCIA] No se guardó imagen del modelo porque no se entrenó ningún modelo exitosamente.")
+            print("[WARNING] No model trained, skipping image export.")
     except Exception as e:
-        print(f'No se pudo guardar la imagen del modelo: {e}')
+        print(f"[ERROR] Could not save model image: {e}")
     
     
-    #Markov
-    if best_model: # Check if best_model is not None
+    if best_model:
         target_variable = 'NIVEL_DE_RIESGO_VICTIMA'
         if target_variable in best_model.nodes():
             markov_blanket = best_model.get_markov_blanket(target_variable)
-            print(f"Markov Blanket de '{target_variable}':", markov_blanket)
+            print(f"Markov Blanket of '{target_variable}':", markov_blanket)
         else:
-            print(f"[ADVERTENCIA] La variable '{target_variable}' no se encuentra en los nodos del mejor modelo. No se puede calcular el Markov Blanket.")
+            print(f"[WARNING] '{target_variable}' not found in best model nodes.")
     else:
-        print("[ADVERTENCIA] No se puede calcular el Markov Blanket porque no se entrenó ningún modelo exitosamente.")
-    
-    # Inferencia exacta
-    
-    #Las evidencias son val_df_encoded, extrae solo las columnas que se obtienen en markov_blanket
-    # evidence = val_encoded[markov_blanket].iloc[0].to_dict()
-    # print("Evidencia para la inferencia:", evidence)
-    
-
-    #bayesian_inference(model_rb, evidence)
+        print("[WARNING] No model trained, cannot compute Markov Blanket.")
 
 if __name__ == "__main__":
     main()

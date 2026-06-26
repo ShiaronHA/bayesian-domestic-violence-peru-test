@@ -134,8 +134,8 @@ def plot_categorical_unique_counts(df, top_n=50, save_path=None):
     sns.barplot(x=list(top_n_unique_value_counts.keys()), y=list(top_n_unique_value_counts.values()))
     plt.xticks(rotation=90)
     plt.xlabel(f"{num_categorical_cols} Categorical Columns (by unique values)")
-    plt.ylabel("Cantidad de valores únicos")
-    plt.title(f"Cantidad de valores únicos por columna categórica ({num_categorical_cols} variables)")
+    plt.ylabel("Number of unique values")
+    plt.title(f"Number of unique values per categorical column ({num_categorical_cols} variables)")
     plt.tight_layout()
 
     if save_path:
@@ -279,7 +279,7 @@ def cluster_column(df, column_name, threshold=0.8):
       else:
           return column
     else:
-        logger.info(f"La columna '{column_name}' tiene menos de 2 valores únicos. No se aplicará clustering.")
+        logger.info(f"Column '{column_name}' has fewer than 2 unique values. Clustering will not be applied.")
         return column
 
 
@@ -323,7 +323,7 @@ def clean_metadata(df):
     for c in columns_to_convert:
         df[c] = df[c].astype('category')
     
-    # A. Columnas categoricas por corregir automáticamente (Valores igual o menor a 2)
+    # A. Categorical columns to fix automatically (values <= 2)
     columns_to_modified = ['FACTOR_VICTIMA_DISCAPACIDAD', 'FACTOR_VICTIMA_ABUSO_CONSUMO_ALCOHOL', 'FACTOR_VICTIMA_CONSUME_DROGAS','AGRESOR_EXTRANJERO']
     df = replace_values(df, columns_to_modified)
 
@@ -331,7 +331,7 @@ def clean_metadata(df):
     for i in df.columns:
         df_cleaned = update_values_column(df, i)
     
-    # C. Pre-proceso previo a la clusterización automática    
+    # C. Pre-processing before automatic clustering
     df_cleaned = update_ocupacion_columns(df_cleaned)
             
     logger.info("Metadata cleaning finished.")
@@ -341,7 +341,7 @@ def clean_data_not_violence_and_mistakes(df):
     """Cleans data by removing cases not classified as domestic violence and other inconsistencies."""
     logger.info("Starting specific data cleaning (not violence, mistakes)...")
 
-    #A. Eliminar CONDICION == 'DERIVADO' OR 'CONTINUADOR', No cambia el fenómeno de violencia, ni agresor.
+    #A. Remove CONDICION == 'DERIVADO' OR 'CONTINUADOR': does not change the violence phenomenon or aggressor.
     df.drop(df[df['CONDICION'] == 'DERIVADO'].index, inplace=True)
     df.drop(df[df['CONDICION'] == 'CONTINUADOR'].index, inplace=True)
     
@@ -409,7 +409,7 @@ def preprocess_data(df):
     # Calculate and add violence level based on UBIGEO
     df = calculate_and_classify_violence_level(df, INPUT_DATA_DIR)
 
-    # 1. Conversión de variables, agrupaciones
+    # 1. Variable conversion and grouping
     
     ## A. Variable Seguro a variable binaria
     columns_seguro = ['PNP_SEGURO', 'PRIVADO_SEGURO', 'SIS_SEGURO', 'ESSALUD_SEGURO', 'OTRO_SEGURO']
@@ -453,7 +453,7 @@ def preprocess_data(df):
                     df[col] = df[col].cat.add_categories(['NO'])
             df[col] = df[col].fillna('NO') 
 
-    ## E. Conversión factor de riesgo (vínculo afectivo)
+    ## E. Convert risk factor (affective bond)
     cols_emotional_bond = ['VINCULO_AFECTIVO_FAMILIA','VINCULO_AFECTIVO_AMIGOS','VINCULO_AFECTIVO_VECINOS', 'VINCULO_AFECTIVO_ASOCIACIONES','VINCULO_AFECTIVO_ORGANIZACIONES_CIVICAS','VINCULO_AFECTIVO_COMPAÑEROS_TRABAJO','VINCULO_AFECTIVO_OTRO']
     cols_no_emotional_bond = ['VINCULO_AFECTIVO_NINGUNO']
 
@@ -466,7 +466,7 @@ def preprocess_data(df):
     df['VINCULO_AFECTIVO'] = df['VINCULO_AFECTIVO'].astype('category')
     df = df.drop(columns=cols_emotional_bond + cols_no_emotional_bond)
     
-    ## F. Conversión de signos de Tipo de violencia
+    ## F. Convert violence type indicators
     violence_types_map = {
         'VIOLENCIA_ECONOMICA': ['PERTURBACION_POSESION','MENOSCABO_TENENCIA_BIENES','PERDIDA_DERECHOS_PATRIMONIALES','LIMITACION_RECURSOS_ECONOMICOS','PRIVACION_MEDIOS_INDISPENSABLES','INCUMPLIMIENTO_OBLIGACION_ALIMENTARIA','CONTROL_DE_INGRESOS','PERCEPCION_SALARIO_MENOR','PROHIBIR_DES_LABORAL','SUSTRAER_INGRESOS', 'FRACCION_RECURSOS_NEC','OBLIGACION_ALIMENTOS','DESTRUIR_INST_TRABAJO','DESTRUIR_BIEN_PERSONAL','OTRA_VECON_PATRIM'],
         'VIOLENCIA_PSICOLOGICA': ['GRITOS_INSULTOS','VIOLENCIA_RACIAL','INDIFERENCIA','DISCR_ORIENTACION_SEXUAL','DISCR_GENERO','DISCR_IDENTIDAD_GENERO', 'RECHAZO','DESVALORIZACION_HUMILLACION','AMENAZA_QUITAR_HIJOS','OTRAS_AMENAZAS','PROHIBE_RECIBIR_VISITAS','PROHIBE_ESTUDIAR_TRABAJAR_SALIR', 'ROMPE_DESTRUYE_COSAS','VIGILANCIA_CONTINUA_PERSECUCION','BOTAR_CASA','AMENAZA_DE_MUERTE','ABANDONO','OTRA_VPSI'],
@@ -595,7 +595,7 @@ def preprocess_data(df):
                 plt.title('EDAD_AGRESOR (Before Outlier Removal)')
             else:
                 plt.title('EDAD_AGRESOR (Original - No Data)')
-            plt.ylabel('Edad Agresor')
+            plt.ylabel('Aggressor Age')
 
             if not common_outliers_indices.empty:
                 # --- Save Removed Outliers Info ---
@@ -615,7 +615,7 @@ def preprocess_data(df):
                     plt.title('EDAD_AGRESOR (After Outlier Removal)')
                 else:
                     plt.title('EDAD_AGRESOR (After - No Data Remaining)')
-                plt.ylabel('Edad Agresor')
+                plt.ylabel('Aggressor Age')
                 
                 # --- Remove Outliers from DataFrame ---
                 df.drop(index=common_outliers_indices, inplace=True)
@@ -628,7 +628,7 @@ def preprocess_data(df):
                     plt.title('EDAD_AGRESOR (No Outliers Removed)')
                 else:
                     plt.title('EDAD_AGRESOR (No Outliers Removed - No Data)')
-                plt.ylabel('Edad Agresor')
+                plt.ylabel('Aggressor Age')
             
             plt.tight_layout()
             plot_path = os.path.join(PLOTS_DIR, 'EDAD_AGRESOR_outliers.png')
@@ -640,7 +640,7 @@ def preprocess_data(df):
     else:
         logger.warning("Column 'EDAD_AGRESOR' not found, skipping outlier treatment.")
     
-    #4. Discretización de variables continuas
+    #4. Discretization of continuous variables
     ## Edad
     bins = [0, 6, 12, 18, 26, 36, 60, 121] 
     labels = ['PRIMERA INFANCIA', 'INFANCIA', 'ADOLESCENCIA', 'JOVEN', 'ADULTO JOVEN', 'ADULTO', 'ADULTO MAYOR']
@@ -655,7 +655,7 @@ def reduce_cardinality (df):
     
     # A. LENGUA_MATERNA_VICTIMA
     top2 = ['CASTELLANO', 'QUECHUA']
-    # Reemplazar las clases que no están en top2 por 'OTRAS'
+    # Replace classes not in top2 with 'OTRAS'
     df['LENGUA_MATERNA_VICTIMA'] = df['LENGUA_MATERNA_VICTIMA'].apply(
         lambda x: x if x in top2 else 'OTRAS'
     )
@@ -748,7 +748,7 @@ def reduce_cardinality (df):
     return df
 
 def filter_cardinality(df):
-    # Obtener las columnas categóricas y la cantidad de valores únicos para cada una
+    # Get categorical columns and unique value counts
     categorical_columns = df.select_dtypes(include=['category']).columns
     unique_value_counts = {col: df[col].nunique() for col in categorical_columns}
     high_cardinality_cols = [col for col, count in unique_value_counts.items() if count > 40]
@@ -757,7 +757,7 @@ def filter_cardinality(df):
     #A. Eliminamos variables con mucha cardinalidad (>50)
     df.drop(high_cardinality_cols, axis=1, inplace=True)
     
-    #B. Reducción de cardinalidad en algunas variables
+    #B. Cardinality reduction for some variables
     df = reduce_cardinality(df)
     
     #C. Eliminamos variables con cardinalidad igual a 1.
@@ -777,7 +777,7 @@ def filter_cardinality(df):
         if value_counts.min() < threshold:
             binary_cols_to_drop.append(col)
 
-    logger.info(f'Se eliminarán estas variables binarias por baja frecuencia: {binary_cols_to_drop}')
+    logger.info(f'Binary columns dropped due to low frequency: {binary_cols_to_drop}')
     df.drop(columns=binary_cols_to_drop, inplace=True)
     
     return df
@@ -801,7 +801,7 @@ def assign_dtypes(filepath):
         df = pd.read_csv(filepath, delimiter=',')
         logger.info(f"Forma inicial del DataFrame: {df.shape}")
         df = df.dropna()
-        # Categorización explícita de variables ordinales
+        # Explicit categorization of ordinal variables
         df.NIVEL_EDUCATIVO_VICTIMA = pd.Categorical(df.NIVEL_EDUCATIVO_VICTIMA,
             categories=[
                 'SIN NIVEL/INICIAL/BASICA ESPECIAL',
@@ -875,7 +875,7 @@ def assign_dtypes(filepath):
         for col in nominal_cols:
             df[col] = pd.Categorical(df[col], ordered=False)
             
-        # Convertir variables categóricas a códigos numéricos
+        # Convert categorical variables to numeric codes
         df_encoded = df.apply(lambda col: col.cat.codes if col.dtype.name == 'category' else col)
         
         code_to_category_map = {
@@ -934,7 +934,7 @@ def main():
         logger.info("Final DataFrame types:")
         logger.info(combined_df.dtypes.to_string()) # Use to_string() for better console output of many dtypes
         
-        # Seleccion de características para el análisis
+        # Feature selection
         combined_df = feature_selection(combined_df)
         logger.info(f"DataFrame shape after feature selection: {combined_df.shape}")
         
@@ -963,20 +963,20 @@ def main():
         except Exception as e:
             logger.error(f"Error saving processed data: {e}")
             
-        # 5. Asignar dtypes a las columnas categóricas
+        # 5. Assign dtypes to categorical columns
         filepath = os.path.join(OUTPUT_DATA_DIR, 'df_full_processed.csv')
         df_encoded, df, code_to_category_map, dtype_definitions = assign_dtypes(filepath)
-        # 6. Dividir el DataFrame en dos partes: una para el análisis y otra para la predicción
+        # 6. Split DataFrame into train and validation sets
         
         # Paso 0: cargar los datos
         total_size = len(df)
 
-        # Paso 1: recolectar todas las categorías mínimas necesarias
+        # Step 1: collect minimum rows covering all categories
         df_minimum = collect_all_categories(df)
-        min_indices = set(df_minimum['index'])  # guardamos los índices usados
+        min_indices = set(df_minimum['index'])  # store used indices
         df_minimum = df_minimum.set_index('index')
 
-        # Paso 2: determinar cuántas filas más se necesitan para completar el train
+        # Step 2: determine how many more rows are needed to complete train set
         target_train_size = total_size - 1000
         n_missing = target_train_size - len(df_minimum)
 
@@ -1001,13 +1001,13 @@ def main():
         logger.info(f"Train shape: {train_encoded.shape}")
         logger.info(f"Validation shape: {val_encoded.shape}")
         
-        # Guardar los DataFrames de entrenamiento y validación
+        # Save training and validation DataFrames
         train_encoded.to_csv(os.path.join(OUTPUT_DATA_DIR, 'train_encoded.csv'), index=False)
         train_df.to_csv(os.path.join(OUTPUT_DATA_DIR, 'train_df.csv'), index=False)
         val_encoded.to_csv(os.path.join(OUTPUT_DATA_DIR, 'val_encoded.csv'), index=False)
         val_df.to_csv(os.path.join(OUTPUT_DATA_DIR, 'val_df.csv'), index=False)
         
-        # Guardar los mapeos de códigos de categorías (anteriormente 'dict')
+        # Save category code mappings
         uploads_dir = os.path.join(BASE_DIR, 'uploads')
         if not os.path.exists(uploads_dir):
             os.makedirs(uploads_dir)
@@ -1015,7 +1015,7 @@ def main():
         dict_file_path = os.path.join(uploads_dir, 'categorical_mappings.json')
         with open(dict_file_path, 'w', encoding='utf-8') as f:
             json.dump(code_to_category_map, f, indent=4, ensure_ascii=False)
-        logger.info(f"Mapeos de códigos de categorías guardados en: {dict_file_path}")
+        logger.info(f"Category code mappings saved to: {dict_file_path}")
 
         # Guardar las definiciones de dtype
         dtype_definitions_path = os.path.join(uploads_dir, 'dtype_definitions.json')

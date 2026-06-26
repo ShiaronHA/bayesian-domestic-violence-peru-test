@@ -13,20 +13,10 @@ from sklearn.metrics import (
     precision_score, recall_score, f1_score
 )
 from pgmpy.inference import BeliefPropagation
-from pgmpy.estimators import BayesianEstimator
 from pgmpy.sampling import GibbsSampling
 from networkx.drawing.nx_pydot import to_pydot
 import networkx as nx
-
-
-def parameter_learning(model, df):
-    """
-    Estimate parameters for a Bayesian Network using BayesianEstimator.
-    """
-    print("\nEstimating parameters with BayesianEstimator...")
-    estimator = BayesianEstimator(model, df)
-    model.fit(df, BayesianEstimator, prior_type='BDeu')
-    return model
+from parameter_learner import parameter_learning
 
 
 def bayesian_inference_exact(model, evidences_df, variable_name, model_name):

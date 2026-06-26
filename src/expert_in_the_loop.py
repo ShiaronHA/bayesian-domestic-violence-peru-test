@@ -1,15 +1,9 @@
-from pgmpy.estimators import BayesianEstimator
 import pickle
 import os
 import json
 import time
-from sklearn.model_selection import train_test_split # Added import
-import matplotlib.pyplot as plt
-from networkx.drawing.nx_pydot import to_pydot
-from pgmpy.models import BayesianNetwork, DiscreteBayesianNetwork
-import networkx as nx
 from pgmpy.estimators import ExpertInLoop
-from pgmpy.estimators.CITests import chi_square # Added import
+from pgmpy.models import DiscreteBayesianNetwork
 import pandas as pd
 import numpy as np
 from pgmpy.metrics import structure_score
@@ -17,50 +11,33 @@ from pgmpy.metrics import structure_score
 
 def main():
 
-    # 1. Leemos los DataFrames de entrenamiento y validación
     train_df_encoded = pd.read_csv('./datasets/train_encoded.csv')
     train_df = pd.read_csv('./datasets/train_df.csv')
     val_encoded = pd.read_csv('./datasets/val_encoded.csv')
     val_df = pd.read_csv('./datasets/val_df.csv')
-    print("DataFrames cargados correctamente.")
 
-    # --- Cargar dtype_definitions y re-aplicar a train_df ---
     dtype_definitions_path = './uploads/dtype_definitions.json'
     if os.path.exists(dtype_definitions_path):
         with open(dtype_definitions_path, 'r', encoding='utf-8') as f:
             dtype_definitions = json.load(f)
-    
-    print("\\nRe-aplicando dtypes categóricos a train_df...")
-    
-    for col_name, defs in dtype_definitions.items():
+        for col_name, defs in dtype_definitions.items():
             if col_name in train_df.columns:
                 try:
                     cat_dtype = pd.CategoricalDtype(categories=defs['categories'], ordered=defs['ordered'])
                     train_df[col_name] = train_df[col_name].astype(cat_dtype)
                 except Exception as e:
-                    print(f"[ADVERTENCIA] No se pudo convertir la columna {col_name} al CategoricalDtype especificado: {e}")
-                    print(f"  Categorías esperadas: {defs['categories']}")
-                    print(f"  Categorías encontradas en los datos: {list(train_df[col_name].unique()) if hasattr(train_df[col_name], 'unique') else 'N/A'}")
+                    print(f"[WARNING] Could not convert column '{col_name}' to CategoricalDtype: {e}")
+                    print(f"  Expected categories: {defs['categories']}")
+                    print(f"  Categories found in data: {list(train_df[col_name].unique()) if hasattr(train_df[col_name], 'unique') else 'N/A'}")
 
     
-    train_df.info()
-    
-    # Attempt to resolve XGBoost ValueError by removing rows with any NaNs
-    # This is a test to see if residual NaNs are causing .cat.codes to be -1
-    original_rows = len(train_df)
-
-    #Imprime cuantos NaNs hay en cada columna
-    print("\n[INFO] Conteo de NaNs en cada columna del DataFrame de entrenamiento:")
-    print(train_df.isna().sum())
-    # Elimina filas con NaNs
     train_df_for_eil = train_df.dropna()
-    dropped_rows = original_rows - len(train_df_for_eil)
-    
+    dropped_rows = len(train_df) - len(train_df_for_eil)
     if dropped_rows > 0:
-        print(f"[INFO] Dropped {dropped_rows} rows from train_df due to NaNs before passing to ExpertInLoop.")
+        print(f"[INFO] Dropped {dropped_rows} rows with NaNs before ExpertInLoop.")
 
     
-    # 2. Aprendemos DAG con LLM
+    # Variable descriptions passed to the LLM (in Spanish, matching the original dataset domain)
     descriptions = {
     "CONDICION": "Condición del caso de violencia reportado, como: nuevo, reincidente (Cuando el acto ocurre nuevamente por el mismo agresor), reingreso (Cuando el acto ocurre por una persona agresora diferente a la primera vez).",
     "EDAD_VICTIMA": "El grupo etario de la victima",
@@ -127,7 +104,7 @@ def main():
                 bn_model.add_edges_from(dag.edges())
                 
                 # Calcular score
-                # Asegura que estén todos los nodos en el modelo
+                # Ensure all nodes are present in the model
                 for col in train_df_for_eil.columns:
                     if col not in bn_model.nodes():
                         bn_model.add_node(col)
@@ -167,7 +144,7 @@ def main():
                 print(f"El DAG aprendido ({llm_model}) ha sido guardado en: {filename}")
 
             except Exception as e:
-                print(f"[ERROR] Falló ExpertInLoop con {llm_model}: {e}")
+                print(f"[ERROR] ExpertInLoop failed for {llm_model}: {e}")
 
     # Crear DataFrame de resultados
     results_eil = pd.DataFrame(results)
