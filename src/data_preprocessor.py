@@ -29,7 +29,15 @@ PLOTS_DIR = os.path.join(BASE_DIR, 'plots')
 UPLOADS_DIR = os.path.join(BASE_DIR, 'uploads')
 RESULTS_DIR = os.path.join(BASE_DIR, 'results')
 MODELS_DIR = os.path.join(BASE_DIR, 'models')
-DATA_DIR = os.path.join(BASE_DIR, 'data')
+DATA_DIR   = os.path.join(BASE_DIR, 'data')
+
+VAL_SIZE = 1000  # Number of records held out for validation
+
+# --- Preprocessing hyperparameters ---
+NULL_THRESHOLD             = 0.50  # Drop columns with more than this fraction of nulls
+BINARY_MIN_FREQ            = 0.03  # Drop binary columns whose minority class is below this fraction
+MAX_CARDINALITY            = 40    # Drop categorical columns with more unique values than this
+CLUSTER_SIMILARITY_THRESHOLD = 0.8 # Distance threshold for occupation clustering
 
 # Ensure directories exist
 for directory in [MODELS_DIR, UPLOADS_DIR, OUTPUT_DATA_DIR, RESULTS_DIR, PLOTS_DIR, DATA_DIR]:
@@ -51,7 +59,7 @@ DATA_FILES_INFO = [
     {'name': 'BD Registro de Casos del CEM - Año 2024.sav', 'year': 2024, 'part': 1}
 ]
 
-# Normalizador de texto
+# Text normalizer
 def normalize_text(text):
     if not isinstance(text, str):
         return str(text)
@@ -144,17 +152,17 @@ def plot_categorical_unique_counts(df, top_n=50, save_path=None):
             logger.info(f"Plot saved to {save_path}")
         except Exception as e:
             logger.error(f"Error saving plot to {save_path}: {e}")
-    #plt.show() 
+
 
 def replace_values(df, columns):
-    """Reemplaza los valores 1.0, 1, 0  por SI, SI, NO respectivamente en las columnas especificadas.
+    """Replaces values 1.0, 1, 0 with SI, SI, NO respectively in the specified columns.
 
     Args:
-        df: El DataFrame a modificar.
-        columns: Una lista de nombres de columnas a modificar.
+        df: The DataFrame to modify.
+        columns: A list of column names to modify.
 
     Returns:
-        El DataFrame modificado.
+        The modified DataFrame.
     """
     for column in columns:
         df[column] = df[column].replace({1.0: 'SI', '1': 'SI', '0': 'NO'})
@@ -245,7 +253,7 @@ def update_values_column(df, column):
 
   return df
 
-def cluster_column(df, column_name, threshold=0.8):
+def cluster_column(df, column_name, threshold=CLUSTER_SIMILARITY_THRESHOLD):
     """Clusters values in a specified column based on similarity.
 
     Args:
@@ -266,13 +274,13 @@ def cluster_column(df, column_name, threshold=0.8):
           unique_values = column.dropna().unique()
 
           embeddings = model.encode(unique_values.astype(str))
-          logger.info(f'La columa {column_name}: {unique_values}')
+          logger.info(f'Column {column_name}: {unique_values}')
           similarities = model.similarity(embeddings, embeddings)
           distance_matrix = 1 - similarities
           linkage_matrix = linkage(distance_matrix, method='ward')
           clusters = fcluster(linkage_matrix, threshold, criterion='distance')
 
-          # Creamos mapping
+          # Build cluster mapping
           cluster_mapping = dict(zip(unique_values, clusters))
           clusters = column.map(cluster_mapping)
           return pd.Series(clusters, index=column.index)
@@ -308,7 +316,7 @@ def update_ocupacion_columns(df):
     else:
         logger.warning("OCUPACION_VICTIMA_cluster or OCUPACION_VICTIMA not found, skipping update.")
             
-    # Eliminar columnas que terminan en "_cluster"
+    # Drop temporary cluster columns
     cols_to_drop = [col for col in df.columns if col.endswith('_cluster')]
     if cols_to_drop:
         df = df.drop(columns=cols_to_drop)        
@@ -327,7 +335,7 @@ def clean_metadata(df):
     columns_to_modified = ['FACTOR_VICTIMA_DISCAPACIDAD', 'FACTOR_VICTIMA_ABUSO_CONSUMO_ALCOHOL', 'FACTOR_VICTIMA_CONSUME_DROGAS','AGRESOR_EXTRANJERO']
     df = replace_values(df, columns_to_modified)
 
-    # B. Columnas categoricas por corregir manualmente
+    # B. Categorical columns to fix manually
     for i in df.columns:
         df_cleaned = update_values_column(df, i)
     
@@ -345,7 +353,7 @@ def clean_data_not_violence_and_mistakes(df):
     df.drop(df[df['CONDICION'] == 'DERIVADO'].index, inplace=True)
     df.drop(df[df['CONDICION'] == 'CONTINUADOR'].index, inplace=True)
     
-    #B. Eliminar registros donde  df['DPTO_DOMICILIO'] + df['PROV_DOMICILIO'] + df['DIST_DOMICILIO'] == 999999
+    #B. Drop records where DPTO_DOMICILIO + PROV_DOMICILIO + DIST_DOMICILIO == 999999
     df = df[df['DPTO_DOMICILIO'] + df['PROV_DOMICILIO'] + df['DIST_DOMICILIO'] != '999999']
     
     return df
@@ -375,7 +383,6 @@ def calculate_and_classify_violence_level(df, input_data_dir):
     df_copy['UBIGEO'] = df_copy['UBIGEO'].str.zfill(6)
     
     try:
-        #df_ubigeo = pd.read_csv(os.path.join(input_data_dir, 'TB_UBIGEOS.csv'), delimiter=';')
         df_poblacion = pd.read_excel(os.path.join(input_data_dir, 'Poblacion_distritos.xlsx'))
     except FileNotFoundError as e:
         logger.error(f"UBIGEO or Population file not found: {e}. Skipping violence level calculation.")
@@ -385,12 +392,12 @@ def calculate_and_classify_violence_level(df, input_data_dir):
     df_poblacion.dropna(subset=['2022'], inplace=True)
     df_poblacion['2022'] = df_poblacion['2022'].astype(int)
 
-    # Contar casos por UBIGEO
+    # Count cases per UBIGEO
     df_casos = df_copy.groupby('UBIGEO').size().reset_index(name='casos_reportados')
     df_poblacion_reducido = df_poblacion[['UBIGEO', '2022']].rename(columns={'2022': 'poblacion'})
     df_poblacion_reducido['UBIGEO'] = df_poblacion_reducido['UBIGEO'].astype(str).str.zfill(6)
 
-    # Unir ambos DataFrames por UBIGEO
+    # Merge DataFrames on UBIGEO
     df_merge = pd.merge(df_casos, df_poblacion_reducido, on='UBIGEO', how='left')
     df_merge['ratio_violencia'] = df_merge['casos_reportados'] / df_merge['poblacion']
 
@@ -411,7 +418,7 @@ def preprocess_data(df):
 
     # 1. Variable conversion and grouping
     
-    ## A. Variable Seguro a variable binaria
+    ## A. Insurance variable to binary
     columns_seguro = ['PNP_SEGURO', 'PRIVADO_SEGURO', 'SIS_SEGURO', 'ESSALUD_SEGURO', 'OTRO_SEGURO']
     columns_seguro_no = ['NINGUN_SEGURO']
     
@@ -424,13 +431,13 @@ def preprocess_data(df):
     df['SEGURO_VICTIMA'] = df['SEGURO_VICTIMA'].astype('category')
     df = df.drop(columns=columns_seguro + columns_seguro_no, errors='ignore')
     
-    ## B.Victima-Agresor Peruana a binaria
+    ## B. Victim/aggressor nationality to binary
     df.loc[df['VICTIMA_EXTRANJERA'] == 'SI', 'VICTIMA_PERUANA'] = 'NO'
     df.loc[df['AGRESOR_EXTRANJERO'] == 'SI', 'AGRESOR_PERUANO'] = 'NO'
 
     df = df.drop(columns=['VICTIMA_EXTRANJERA','AGRESOR_EXTRANJERO'])
     
-    ## C. Victima recibe tratamiento a binaria
+    ## C. Victim receives treatment to binary
     cols_treatment = ['TRATAMIENTO_PSICOLOGICO','TRATAMIENTO_PSIQUIATRICO','ATENCION_MEDICA', 'OTRO_TRATAMIENTO','CONTINUA_RECIBIENDO_TRATAMIENTO']
 
     for col in cols_treatment:
@@ -440,7 +447,7 @@ def preprocess_data(df):
     df['TRATAMIENTO_VICTIMA'] = df['TRATAMIENTO_VICTIMA'].astype('category')
     df = df.drop(columns=cols_treatment + ['NINGUN_TRATAMIENTO'])
     
-    ## D. Agregamos categoria NO a columnas con un solo valor (SI)
+    ## D. Add 'NO' category to columns with only one value (SI)
     cols_risk_factor_binary = [
         'FACTOR_AGRESOR_CONSUMO_ALCOHOL', 'FACTOR_AGRESOR_CONSUME_DROGA',
         'FACTOR_VICTIMA_DISCAPACIDAD', 'FACTOR_VICTIMA_ABUSO_CONSUMO_ALCOHOL', 
@@ -501,28 +508,28 @@ def preprocess_data(df):
     else:
         logger.warning("'TIPO_VIOLENCIA' column not found. Skipping violence type mapping.")
 
-    ## G. Hijos a binaria
+    ## G. Children variable to binary
     if 'HIJAS_VIVAS' in df.columns and 'HIJOS_VIVOS' in df.columns:
         df['HIJOS_VIVIENTES'] = df.apply(lambda x: 'NO' if (x['HIJAS_VIVAS'] == 0.0 and x['HIJOS_VIVOS'] == 0.0) else 'SI', axis=1)
         df['HIJOS_VIVIENTES'] = df['HIJOS_VIVIENTES'].astype('category')
         df = df.drop(columns=['HIJAS_VIVAS','HIJOS_VIVOS'], errors='ignore')
 
-    #2. Limpieza de duplicados
+    #2. Remove duplicates
     initial_rows = df.shape[0]
     df = df.drop_duplicates()
-    logger.info(f"Cantidad de registros duplicados eliminados: {initial_rows - df.shape[0]}")
+    logger.info(f"Duplicate records removed: {initial_rows - df.shape[0]}")
     
-    #3. Limpieza de nulos
-    umbral_nulos = 0.50 
-    ratio_nulos = df.isnull().sum() / df.shape[0]
-    columnas_a_eliminar_por_nulos = ratio_nulos[ratio_nulos > umbral_nulos].index
-    df = df.drop(columns=columnas_a_eliminar_por_nulos)
-    logger.info(f"Columnas eliminadas por superar el umbral de nulos ({umbral_nulos*100}%): {len(columnas_a_eliminar_por_nulos)}")
+    #3. Remove columns with too many nulls
+    null_threshold = NULL_THRESHOLD
+    null_ratio = df.isnull().sum() / df.shape[0]
+    cols_to_drop_nulls = null_ratio[null_ratio > null_threshold].index
+    df = df.drop(columns=cols_to_drop_nulls)
+    logger.info(f"Columns dropped for exceeding null threshold ({null_threshold*100}%): {len(cols_to_drop_nulls)}")
     
     initial_rows_before_dropna = df.shape[0]
     df.dropna(inplace=True)
-    logger.info(f"Filas eliminadas por contener valores nulos restantes: {initial_rows_before_dropna - df.shape[0]}")
-    logger.info(f'Nro de registros completos con {df.shape[1]} variables: {df.shape[0]}')
+    logger.info(f"Rows dropped for containing remaining null values: {initial_rows_before_dropna - df.shape[0]}")
+    logger.info(f'Complete records with {df.shape[1]} variables: {df.shape[0]}')
     
     #4. Limpieza de outliers y ruido para EDAD_AGRESOR
     if 'EDAD_AGRESOR' in df.columns:
@@ -678,7 +685,7 @@ def reduce_cardinality (df):
     
     # C. NIVEL_EDUCATIVO_VICTIMA / NIVEL_EDUCATIVO_AGRESOR
 
-    # Reemplazar las clases 'SIN NIVEL', 'INICIAL', 'BASICA ESPECIAL' por 'SIN NIVEL/INICIAL/BASICA ESPECIAL'
+    # Merge low-frequency education categories
     df['NIVEL_EDUCATIVO_VICTIMA'] = df['NIVEL_EDUCATIVO_VICTIMA'].astype(str)
 
     df['NIVEL_EDUCATIVO_VICTIMA'] = df['NIVEL_EDUCATIVO_VICTIMA'].replace({
@@ -695,7 +702,7 @@ def reduce_cardinality (df):
     
     df['NIVEL_EDUCATIVO_AGRESOR'].value_counts()
 
-    # Reemplazar las clases 'SIN NIVEL', 'INICIAL', 'BASICA ESPECIAL' por 'SIN NIVEL/INICIAL/BASICA ESPECIAL'
+    # Merge low-frequency education categories
     df['NIVEL_EDUCATIVO_AGRESOR'] = df['NIVEL_EDUCATIVO_AGRESOR'].astype(str)
 
     df['NIVEL_EDUCATIVO_AGRESOR'] = df['NIVEL_EDUCATIVO_AGRESOR'].replace({
@@ -725,25 +732,8 @@ def reduce_cardinality (df):
     # E. EDAD_VICTIMA 
     df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype(str)
 
-    # df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].replace({
-    #     'INFANCIA': 'INFANCIA/ADULTO MAYOR',
-    #     'PRIMERA INFANCIA': 'INFANCIA/ADULTO MAYOR',
-    #     'ADULTO MAYOR': 'INFANCIA/ADULTO MAYOR'
-    # })
 
     df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype('category')
-    
-    # F. EDAD_AGRESOR 
-    # df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype(str)
-
-    # df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].replace({
-    #     'INFANCIA': 'INFANCIA/ADULTO MAYOR',
-    #     'PRIMERA INFANCIA': 'INFANCIA/ADULTO MAYOR',
-    #     'ADULTO MAYOR': 'INFANCIA/ADULTO MAYOR'
-    # })
-
-    # df['EDAD_VICTIMA'] = df['EDAD_VICTIMA'].astype('category')
-    
     
     return df
 
@@ -751,8 +741,8 @@ def filter_cardinality(df):
     # Get categorical columns and unique value counts
     categorical_columns = df.select_dtypes(include=['category']).columns
     unique_value_counts = {col: df[col].nunique() for col in categorical_columns}
-    high_cardinality_cols = [col for col, count in unique_value_counts.items() if count > 40]
-    logger.info(f'la variable a eliminar es: {high_cardinality_cols}')
+    high_cardinality_cols = [col for col, count in unique_value_counts.items() if count > MAX_CARDINALITY]
+    logger.info(f'High-cardinality columns to drop: {high_cardinality_cols}')
 
     #A. Eliminamos variables con mucha cardinalidad (>50)
     df.drop(high_cardinality_cols, axis=1, inplace=True)
@@ -762,13 +752,13 @@ def filter_cardinality(df):
     
     #C. Eliminamos variables con cardinalidad igual a 1.
     unique_cardinality_cols = [col for col, count in unique_value_counts.items() if count == 1]
-    logger.info(f'las variables a eliminar son: {unique_cardinality_cols}')
+    logger.info(f'Single-value columns to drop: {unique_cardinality_cols}')
     df.drop(unique_cardinality_cols, axis=1, inplace=True)
     
     #D. Eliminamos variables binarias con una categoria menor al 3% de todos los datos
     
     binary_cols = [col for col, count in unique_value_counts.items() if count == 2]
-    threshold = 0.03 * len(df)
+    threshold = BINARY_MIN_FREQ * len(df)
 
     binary_cols_to_drop = []
 
@@ -799,7 +789,7 @@ def feature_selection(df):
 
 def assign_dtypes(filepath):
         df = pd.read_csv(filepath, delimiter=',')
-        logger.info(f"Forma inicial del DataFrame: {df.shape}")
+        logger.info(f"Initial DataFrame shape: {df.shape}")
         df = df.dropna()
         # Explicit categorization of ordinal variables
         df.NIVEL_EDUCATIVO_VICTIMA = pd.Categorical(df.NIVEL_EDUCATIVO_VICTIMA,
@@ -895,7 +885,7 @@ def assign_dtypes(filepath):
     
 def collect_all_categories(df):
     """
-    Devuelve un DataFrame con al menos una fila por cada categoría en cada columna categórica.
+    Returns a DataFrame with at least one row per category for each categorical column.
     """
     rows = []
 
@@ -906,127 +896,92 @@ def collect_all_categories(df):
 
     return pd.concat(rows).drop_duplicates().reset_index()
     
-def main():
-    """Main function to run the data preprocessing pipeline."""
-    logger.info("Starting data preprocessing...")
-    
-    for dir_path in [OUTPUT_DATA_DIR, PLOTS_DIR]:
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-            logger.info(f"Created directory: {dir_path}")
-
+def build_and_save_processed_dataset():
+    """Loads raw SAV files, applies the full cleaning pipeline, and saves df_full_processed.csv."""
     combined_df = load_and_process_data(INPUT_DATA_DIR, DATA_FILES_INFO)
+    if combined_df.empty:
+        logger.warning("No data loaded. Aborting.")
+        return None
 
-    if not combined_df.empty:
-        logger.info(f"Initial DataFrame shape: {combined_df.shape}")
-        # logger.debug(f"Initial DataFrame columns: {combined_df.columns.tolist()}") # Optional: for verbose logging
+    logger.info(f"Initial DataFrame shape: {combined_df.shape}")
+    combined_df = clean_metadata(combined_df)
+    logger.info(f"Shape after metadata cleaning: {combined_df.shape}")
+    combined_df = preprocess_data(combined_df)
+    logger.info(f"Shape after preprocessing: {combined_df.shape}")
+    combined_df = feature_selection(combined_df)
+    logger.info(f"Shape after feature selection: {combined_df.shape}")
+    combined_df = combined_df.drop_duplicates()
+    combined_df.dropna(inplace=True)
+    logger.info(f"Final shape: {combined_df.shape}")
 
-        # 1. Clean metadata (e.g., cluster text fields like occupation)
-        combined_df = clean_metadata(combined_df)
-        logger.info(f"DataFrame shape after metadata cleaning: {combined_df.shape}")
-        # logger.debug(f"DataFrame columns after metadata cleaning: {combined_df.columns.tolist()}") # Optional
+    plot_categorical_unique_counts(
+        combined_df, top_n=50,
+        save_path=os.path.join(PLOTS_DIR, 'categorical_unique_counts_final.png')
+    )
 
-        # 2. Preprocess data (further cleaning, feature engineering, type conversions)
-        combined_df = preprocess_data(combined_df)
-        logger.info(f"DataFrame shape after preprocessing: {combined_df.shape}")
-        # logger.debug(f"DataFrame columns after preprocessing: {combined_df.columns.tolist()}") # Optional
-        
-        logger.info("Final DataFrame types:")
-        logger.info(combined_df.dtypes.to_string()) # Use to_string() for better console output of many dtypes
-        
-        # Feature selection
-        combined_df = feature_selection(combined_df)
-        logger.info(f"DataFrame shape after feature selection: {combined_df.shape}")
-        
-        combined_df = combined_df.drop_duplicates()
-        logger.info(f"DataFrame shape after drop duplicates: {combined_df.shape}")
-        
-        #Eliminar filas con nulos restantes
-        combined_df.dropna(inplace=True)
-        
-        # 3. Plot final categorical unique counts
-        plot_save_path_final = os.path.join(PLOTS_DIR, 'categorical_unique_counts_final.png')
-        plot_categorical_unique_counts(combined_df, top_n=50, save_path=plot_save_path_final)
-        
-        # 4. Save the fully processed DataFrame
-        output_file_path = os.path.join(OUTPUT_DATA_DIR, 'df_full_processed.csv')
-        try:
-            # --- Print NaN counts before saving ---
-            logger.info("\nNaN counts per column before saving df_full_processed.csv:")
-            nan_counts = combined_df.isnull().sum()
-            logger.info(nan_counts[nan_counts > 0].to_string() if not nan_counts[nan_counts > 0].empty else "No NaNs found.")
-            logger.info("--- End of NaN counts ---\n")
-            # --- End of print NaN counts ---
-            
-            combined_df.to_csv(output_file_path, index=False)
-            logger.info(f"Successfully saved fully processed data to: {output_file_path}")
-        except Exception as e:
-            logger.error(f"Error saving processed data: {e}")
-            
-        # 5. Assign dtypes to categorical columns
-        filepath = os.path.join(OUTPUT_DATA_DIR, 'df_full_processed.csv')
-        df_encoded, df, code_to_category_map, dtype_definitions = assign_dtypes(filepath)
-        # 6. Split DataFrame into train and validation sets
-        
-        # Paso 0: cargar los datos
-        total_size = len(df)
+    output_path = os.path.join(OUTPUT_DATA_DIR, 'df_full_processed.csv')
+    combined_df.to_csv(output_path, index=False)
+    logger.info(f"Processed dataset saved to: {output_path}")
+    return output_path
 
-        # Step 1: collect minimum rows covering all categories
-        df_minimum = collect_all_categories(df)
-        min_indices = set(df_minimum['index'])  # store used indices
-        df_minimum = df_minimum.set_index('index')
 
-        # Step 2: determine how many more rows are needed to complete train set
-        target_train_size = total_size - 1000
-        n_missing = target_train_size - len(df_minimum)
+def split_and_save_datasets(processed_csv_path: str):
+    """Assigns dtypes, splits into train/val sets, and saves all output files."""
+    df_encoded, df, code_to_category_map, dtype_definitions = assign_dtypes(processed_csv_path)
 
-        # Paso 3: muestreo aleatorio de filas adicionales, sin repetir las usadas
-        df_remaining = df.drop(index=min_indices)
-        df_extra = df_remaining.sample(n=n_missing, random_state=42)
+    total_size = len(df)
 
-        # Paso 4: formar el set de entrenamiento completo
-        train_df = pd.concat([df_minimum, df_extra])
-        train_indices = train_df.index
+    # Guarantee all categories are represented in the training set
+    df_minimum = collect_all_categories(df)
+    min_indices = set(df_minimum['index'])
+    df_minimum = df_minimum.set_index('index')
 
-        # Paso 5: obtener el set codificado para el train
-        train_encoded = df_encoded.loc[train_indices].reset_index(drop=True)
-        train_df = train_df.reset_index(drop=True)
+    target_train_size = total_size - VAL_SIZE
+    n_missing = target_train_size - len(df_minimum)
+    df_extra = df.drop(index=min_indices).sample(n=n_missing, random_state=42)
 
-        # Paso 6: validation = el resto
-        all_indices = set(range(total_size))
-        valid_indices = list(all_indices - set(train_indices))
-        val_df = df.loc[valid_indices].reset_index(drop=True)
-        val_encoded = df_encoded.loc[valid_indices].reset_index(drop=True)
+    train_df = pd.concat([df_minimum, df_extra])
+    train_indices = train_df.index
 
-        logger.info(f"Train shape: {train_encoded.shape}")
-        logger.info(f"Validation shape: {val_encoded.shape}")
-        
-        # Save training and validation DataFrames
-        train_encoded.to_csv(os.path.join(OUTPUT_DATA_DIR, 'train_encoded.csv'), index=False)
-        train_df.to_csv(os.path.join(OUTPUT_DATA_DIR, 'train_df.csv'), index=False)
-        val_encoded.to_csv(os.path.join(OUTPUT_DATA_DIR, 'val_encoded.csv'), index=False)
-        val_df.to_csv(os.path.join(OUTPUT_DATA_DIR, 'val_df.csv'), index=False)
-        
-        # Save category code mappings
-        uploads_dir = os.path.join(BASE_DIR, 'uploads')
-        if not os.path.exists(uploads_dir):
-            os.makedirs(uploads_dir)
-            
-        dict_file_path = os.path.join(uploads_dir, 'categorical_mappings.json')
-        with open(dict_file_path, 'w', encoding='utf-8') as f:
-            json.dump(code_to_category_map, f, indent=4, ensure_ascii=False)
-        logger.info(f"Category code mappings saved to: {dict_file_path}")
+    train_encoded = df_encoded.loc[train_indices].reset_index(drop=True)
+    train_df = train_df.reset_index(drop=True)
 
-        # Guardar las definiciones de dtype
-        dtype_definitions_path = os.path.join(uploads_dir, 'dtype_definitions.json')
-        with open(dtype_definitions_path, 'w', encoding='utf-8') as f:
-            json.dump(dtype_definitions, f, indent=4, ensure_ascii=False)
-        logger.info(f"Definiciones de Dtype guardadas en: {dtype_definitions_path}")
-        
-    else:
-        logger.warning("No data to process or save.")
-        
+    valid_indices = list(set(range(total_size)) - set(train_indices))
+    val_df = df.loc[valid_indices].reset_index(drop=True)
+    val_encoded = df_encoded.loc[valid_indices].reset_index(drop=True)
+
+    logger.info(f"Train shape: {train_encoded.shape}")
+    logger.info(f"Validation shape: {val_encoded.shape}")
+
+    train_encoded.to_csv(os.path.join(OUTPUT_DATA_DIR, 'train_encoded.csv'), index=False)
+    train_df.to_csv(os.path.join(OUTPUT_DATA_DIR, 'train_df.csv'), index=False)
+    val_encoded.to_csv(os.path.join(OUTPUT_DATA_DIR, 'val_encoded.csv'), index=False)
+    val_df.to_csv(os.path.join(OUTPUT_DATA_DIR, 'val_df.csv'), index=False)
+
+    uploads_dir = os.path.join(BASE_DIR, 'uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+
+    with open(os.path.join(uploads_dir, 'categorical_mappings.json'), 'w', encoding='utf-8') as f:
+        json.dump(code_to_category_map, f, indent=4, ensure_ascii=False)
+    logger.info(f"Category mappings saved to: {uploads_dir}/categorical_mappings.json")
+
+    with open(os.path.join(uploads_dir, 'dtype_definitions.json'), 'w', encoding='utf-8') as f:
+        json.dump(dtype_definitions, f, indent=4, ensure_ascii=False)
+    logger.info(f"Dtype definitions saved to: {uploads_dir}/dtype_definitions.json")
+
+
+def main():
+    """Orchestrates the full data preprocessing pipeline."""
+    logger.info("Starting data preprocessing...")
+    os.makedirs(OUTPUT_DATA_DIR, exist_ok=True)
+    os.makedirs(PLOTS_DIR, exist_ok=True)
+
+    processed_csv_path = build_and_save_processed_dataset()
+    if processed_csv_path:
+        split_and_save_datasets(processed_csv_path)
+
     logger.info("Data preprocessing finished.")
+
 
 if __name__ == "__main__":
     main()
