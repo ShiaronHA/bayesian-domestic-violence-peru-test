@@ -24,7 +24,7 @@ ERRORS_PATH        = './uploads/structure_learning_classic_errors.csv'
 DAG_IMAGE_PATH     = './dag/best_model_rb_classic.png'
 
 # --- Experiment configuration ---
-SAMPLE_SIZES = [10000, 20000, 50000, 100000, 150000, 200000]  # full dataset size appended at runtime
+SAMPLE_SIZES = [10000, 20000, 50000, 100000, 150000, 200000] 
 ALGORITHMS = [
     ('hill_climb', 'bic-d'),
     ('hill_climb', 'bdeu'),
@@ -119,8 +119,8 @@ def learn_structure(df, algorithm='hill_climb', scoring_method=None, expert_know
             
             if model is None:
                 print(f"PC algorithm with {scoring_method} resulted in no edges (all variables independent). Creating an empty network with all nodes.")
-                bn_model = DiscreteBayesianNetwork() # Create an empty network
-                bn_model.add_nodes_from(df.columns) # Add all columns as nodes
+                bn_model = DiscreteBayesianNetwork() 
+                bn_model.add_nodes_from(df.columns) 
             else:
                 if not hasattr(model, 'edges'): # Defensive check
                      raise TypeError(f"Model returned by PC ({scoring_method}) is not a DAG object or similar (type: {type(model)}).")
@@ -348,7 +348,7 @@ def main():
             best_model = None
     else:
         print("[WARNING] No models were trained. Cannot save best or second best model.")
-        best_model = None  # no models trained
+        best_model = None  
     
     if errors:
         errors_df = pd.DataFrame(errors)

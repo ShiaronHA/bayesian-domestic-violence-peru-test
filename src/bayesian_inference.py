@@ -20,6 +20,11 @@ MAX_PREDICTIONS       = 100
 INFERENCE_BATCH_SIZE  = 7
 GIBBS_N_SAMPLES       = 1000
 NODES_TO_EXCLUDE      = ['TRATAMIENTO_VICTIMA', 'VIOLENCIA_ECONOMICA']  # excluded for gemini model
+INFERENCE_TYPES       = ['Exact']  # options: 'Exact', 'Approximate'
+
+# --- Experiment configuration ---
+MODEL_TYPE  = 'hc'   # options: 'hc' (Hill Climb), 'gemini' (Expert-in-the-Loop)
+MODEL_PATH  = './models/best_model_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'
 
 
 def bayesian_inference_exact(model, evidences_df, variable_name, model_name):
@@ -209,8 +214,8 @@ def load_datasets():
 
 def main():
     """Loads data and model, runs Bayesian inference, and saves evaluation metrics."""
-    model = 'hc'  # options: 'hc', 'gemini'
-    model_path = './models/best_model_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'
+    model = MODEL_TYPE
+    model_path = MODEL_PATH
     train_encoded, train_df, val_encoded, val_df = load_datasets()
     # Load model
     try:
@@ -264,7 +269,7 @@ def main():
     output_dir = './results'
     # Inference and metrics
     print("\nPreparing data for batch inference...")
-    type_inference = ['Exact']  # Add 'Approximate' if needed
+    type_inference = INFERENCE_TYPES
     for i in type_inference:
         print(f"\nSaving metrics for inference type: {i}")
         if i == 'Exact':

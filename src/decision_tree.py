@@ -11,7 +11,7 @@ OUTPUT_DIR         = './results'
 # --- Model configuration ---
 TARGET_VARIABLE              = 'NIVEL_DE_RIESGO_VICTIMA'
 RANDOM_STATE                 = 42
-FEATURE_IMPORTANCE_THRESHOLD = 0.01  # Minimum feature importance to retain a feature
+FEATURE_IMPORTANCE_THRESHOLD = 0.01  
 
 
 def feature_selection(train, X_val, target_col):

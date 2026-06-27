@@ -31,7 +31,7 @@ def main():
     # Step 3: Bayesian Network inference and evaluation
     run_bayesian_inference()
 
-    # Step 4â€“5: Baseline classifiers
+    # Step 4-5: Baseline classifiers
     run_random_forest()
     run_decision_tree()
 
