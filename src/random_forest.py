@@ -4,9 +4,10 @@ import pandas as pd
 from metrics import save_metrics
 
 # --- Paths ---
-TRAIN_ENCODED_PATH = './datasets/train_encoded.csv'
-VAL_ENCODED_PATH   = './datasets/val_encoded.csv'
-OUTPUT_DIR         = './results'
+_BASE_DIR          = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TRAIN_ENCODED_PATH = os.path.join(_BASE_DIR, 'datasets', 'train_encoded.csv')
+VAL_ENCODED_PATH   = os.path.join(_BASE_DIR, 'datasets', 'val_encoded.csv')
+OUTPUT_DIR         = os.path.join(_BASE_DIR, 'results')
 
 # --- Model configuration ---
 TARGET_VARIABLE          = 'NIVEL_DE_RIESGO_VICTIMA'
@@ -35,7 +36,9 @@ def feature_selection(train, X_val, target_col):
     return X_train_selected, X_val_selected
 
 
-def learn_with_random_forest(train, target_col, val, output_dir='./results'):
+def learn_with_random_forest(train, target_col, val, output_dir=None):
+    if output_dir is None:
+        output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'results')
     os.makedirs(output_dir, exist_ok=True)
 
     X_train = train.drop(columns=[target_col])

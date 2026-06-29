@@ -9,10 +9,11 @@ from parameter_learner import parameter_learning
 from metrics import save_metrics
 
 # --- Paths ---
-TRAIN_ENCODED_PATH = './datasets/train_encoded.csv'
-TRAIN_DF_PATH      = './datasets/train_df.csv'
-VAL_ENCODED_PATH   = './datasets/val_encoded.csv'
-VAL_DF_PATH        = './datasets/val_df.csv'
+_BASE_DIR          = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TRAIN_ENCODED_PATH = os.path.join(_BASE_DIR, 'datasets', 'train_encoded.csv')
+TRAIN_DF_PATH      = os.path.join(_BASE_DIR, 'datasets', 'train_df.csv')
+VAL_ENCODED_PATH   = os.path.join(_BASE_DIR, 'datasets', 'val_encoded.csv')
+VAL_DF_PATH        = os.path.join(_BASE_DIR, 'datasets', 'val_df.csv')
 
 # --- Inference configuration ---
 TARGET_VARIABLE       = 'NIVEL_DE_RIESGO_VICTIMA'
@@ -24,7 +25,7 @@ INFERENCE_TYPES       = ['Exact']  # options: 'Exact', 'Approximate'
 
 # --- Experiment configuration ---
 MODEL_TYPE  = 'hc'   # options: 'hc' (Hill Climb), 'gemini' (Expert-in-the-Loop)
-MODEL_PATH  = './models/best_model_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl'
+MODEL_PATH  = os.path.join(_BASE_DIR, 'models', 'best_model_hill_climb_bic-d_330504_bDeuScore-5747335.12_edges_103_20250608_214125.pkl')
 
 
 def bayesian_inference_exact(model, evidences_df, variable_name, model_name):
@@ -32,8 +33,9 @@ def bayesian_inference_exact(model, evidences_df, variable_name, model_name):
     Perform exact inference using Belief Propagation for multiple cases.
     Results are saved after each case for robustness.
     """
-    result_file_path = os.path.join('./results', f'inference_exact_rb_ypred_batch_{model_name}.json')
-    calibration_error_file_path = os.path.join('./results', f'inference_rb_error_ypred_batch_{model_name}.json')
+    _results_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'results')
+    result_file_path = os.path.join(_results_dir, f'inference_exact_rb_ypred_batch_{model_name}.json')
+    calibration_error_file_path = os.path.join(_results_dir, f'inference_rb_error_ypred_batch_{model_name}.json')
 
     print("\nPerforming exact inference for multiple cases...")
     belief_propagation = BeliefPropagation(model)
@@ -191,7 +193,7 @@ def bayesian_inference_approximate(model, evidences_df, variable_name, n_samples
             except Exception as e:
                 print(f"    [ERROR] Error processing case {actual_case_index_in_original_df + 1} with evidence {evidence_dict} using Gibbs Sampling: {e}")
                 all_results.append({"error": str(e), "evidence_case_number": actual_case_index_in_original_df + 1, "evidence_provided": evidence_dict})
-    result_file_path = os.path.join('./results', 'inference_approx_gibbs_ypred_batch.json')
+    result_file_path = os.path.join(_BASE_DIR, 'results', 'inference_approx_gibbs_ypred_batch.json')
     try:
         with open(result_file_path, 'w', encoding='utf-8') as f:
             json.dump(all_results, f, indent=4, ensure_ascii=False)
@@ -266,7 +268,7 @@ def main():
         ]
     # Parameter learning
     model_rb = parameter_learning(model_rb, train_encoded)
-    output_dir = './results'
+    output_dir = os.path.join(_BASE_DIR, 'results')
     # Inference and metrics
     print("\nPreparing data for batch inference...")
     type_inference = INFERENCE_TYPES

@@ -14,14 +14,15 @@ import numpy as np
 from datetime import datetime
 
 # --- Paths ---
-TRAIN_ENCODED_PATH = './datasets/train_encoded.csv'
-TRAIN_DF_PATH      = './datasets/train_df.csv'
-VAL_ENCODED_PATH   = './datasets/val_encoded.csv'
-VAL_DF_PATH        = './datasets/val_df.csv'
-DTYPE_DEFS_PATH    = './uploads/dtype_definitions.json'
-RESULTS_PATH       = './results/resultados_rb_classic.csv'
-ERRORS_PATH        = './uploads/structure_learning_classic_errors.csv'
-DAG_IMAGE_PATH     = './dag/best_model_rb_classic.png'
+_BASE_DIR          = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TRAIN_ENCODED_PATH = os.path.join(_BASE_DIR, 'datasets', 'train_encoded.csv')
+TRAIN_DF_PATH      = os.path.join(_BASE_DIR, 'datasets', 'train_df.csv')
+VAL_ENCODED_PATH   = os.path.join(_BASE_DIR, 'datasets', 'val_encoded.csv')
+VAL_DF_PATH        = os.path.join(_BASE_DIR, 'datasets', 'val_df.csv')
+DTYPE_DEFS_PATH    = os.path.join(_BASE_DIR, 'uploads', 'dtype_definitions.json')
+RESULTS_PATH       = os.path.join(_BASE_DIR, 'results', 'resultados_rb_classic.csv')
+ERRORS_PATH        = os.path.join(_BASE_DIR, 'uploads', 'structure_learning_classic_errors.csv')
+DAG_IMAGE_PATH     = os.path.join(_BASE_DIR, 'dag', 'best_model_rb_classic.png')
 
 # --- Experiment configuration ---
 SAMPLE_SIZES = [10000, 20000, 50000, 100000, 150000, 200000] 
@@ -323,7 +324,7 @@ def main():
             best_model = trained_models[best_model_key]
             now = datetime.now()
             timestamp_str = now.strftime("%Y%m%d_%H%M%S")
-            filename_best = f"./models/best_model_BIC_{best_model_key}_bicScore{best_score:.2f}_edges_{best_model_edges}_{timestamp_str}.pkl"
+            filename_best = os.path.join(_BASE_DIR, 'models', f"best_model_BIC_{best_model_key}_bicScore{best_score:.2f}_edges_{best_model_edges}_{timestamp_str}.pkl")
             with open(filename_best, 'wb') as f:
                 pickle.dump(best_model, f)
             print(f"\nBest model (BIC) saved to: {filename_best}")
@@ -335,7 +336,7 @@ def main():
                 second_best_model_edges = len(trained_models[second_best_model_key].edges()) if second_best_model_key in trained_models and hasattr(trained_models[second_best_model_key], 'edges') else 'N/A'
                 if second_best_model_key in trained_models:
                     second_best_model = trained_models[second_best_model_key]
-                    filename_second_best = f"./models/second_best_model_BIC_{second_best_model_key}_bicScore{second_best_score:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl"
+                    filename_second_best = os.path.join(_BASE_DIR, 'models', f"second_best_model_BIC_{second_best_model_key}_bicScore{second_best_score:.2f}_edges_{second_best_model_edges}_{timestamp_str}.pkl")
                     with open(filename_second_best, 'wb') as f:
                         pickle.dump(second_best_model, f)
                     print(f"Second best model (BIC) saved to: {filename_second_best}")
@@ -361,7 +362,7 @@ def main():
             nx_graph.add_nodes_from(best_model.nodes())
             nx_graph.add_edges_from(best_model.edges())
             pydot_graph = to_pydot(nx_graph)
-            os.makedirs('./dag', exist_ok=True)
+            os.makedirs(os.path.join(_BASE_DIR, 'dag'), exist_ok=True)
             pydot_graph.write_png(DAG_IMAGE_PATH)
             print(f'Best model image saved to {DAG_IMAGE_PATH}')
         else:

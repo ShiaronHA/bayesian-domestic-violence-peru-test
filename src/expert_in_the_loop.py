@@ -9,12 +9,13 @@ import numpy as np
 from pgmpy.metrics import structure_score
 
 # --- Paths ---
-TRAIN_ENCODED_PATH = './datasets/train_encoded.csv'
-TRAIN_DF_PATH      = './datasets/train_df.csv'
-VAL_ENCODED_PATH   = './datasets/val_encoded.csv'
-VAL_DF_PATH        = './datasets/val_df.csv'
-DTYPE_DEFS_PATH    = './uploads/dtype_definitions.json'
-RESULTS_PATH       = './results/resultados_expert_in_the_loop.csv'
+_BASE_DIR          = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TRAIN_ENCODED_PATH = os.path.join(_BASE_DIR, 'datasets', 'train_encoded.csv')
+TRAIN_DF_PATH      = os.path.join(_BASE_DIR, 'datasets', 'train_df.csv')
+VAL_ENCODED_PATH   = os.path.join(_BASE_DIR, 'datasets', 'val_encoded.csv')
+VAL_DF_PATH        = os.path.join(_BASE_DIR, 'datasets', 'val_df.csv')
+DTYPE_DEFS_PATH    = os.path.join(_BASE_DIR, 'uploads', 'dtype_definitions.json')
+RESULTS_PATH       = os.path.join(_BASE_DIR, 'results', 'resultados_expert_in_the_loop.csv')
 
 # --- Experiment configuration ---
 LLM_MODELS = ['gemini/gemini-2.0-flash']
@@ -147,7 +148,7 @@ def main():
                 
                 # Save the learned DAG individually
                 safe_llm_name = llm_model.replace('/', '_').replace('-', '_')
-                filename = f"./models/learned_dag_with_llm_{safe_llm_name}_bicScore{score_bic:.2f}_effect{effect_size_threshold}_pval{pval_threshold}.pkl"
+                filename = os.path.join(_BASE_DIR, 'models', f"learned_dag_with_llm_{safe_llm_name}_bicScore{score_bic:.2f}_effect{effect_size_threshold}_pval{pval_threshold}.pkl")
                 with open(filename, 'wb') as f:
                     pickle.dump(bn_model, f)
                 print(f"Learned DAG ({llm_model}) saved to: {filename}")

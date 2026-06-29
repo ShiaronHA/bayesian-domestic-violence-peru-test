@@ -7,8 +7,9 @@ from sklearn.metrics import (
     precision_score, recall_score, f1_score
 )
 
-PLOTS_DIR  = './plots'
-OUTPUT_DIR = './results'
+_BASE_DIR  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PLOTS_DIR  = os.path.join(_BASE_DIR, 'plots')
+OUTPUT_DIR = os.path.join(_BASE_DIR, 'results')
 
 
 def save_metrics(y_true, y_pred, label, model_name, output_dir=OUTPUT_DIR, plots_dir=PLOTS_DIR):
