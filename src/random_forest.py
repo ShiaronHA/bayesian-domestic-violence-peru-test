@@ -12,6 +12,7 @@ OUTPUT_DIR         = './results'
 TARGET_VARIABLE          = 'NIVEL_DE_RIESGO_VICTIMA'
 RANDOM_STATE             = 42
 FEATURE_IMPORTANCE_THRESHOLD = 0.01  # Minimum feature importance to retain a feature
+MAX_PREDICTIONS          = 100       # Must match bayesian_inference.py MAX_PREDICTIONS for a fair benchmark
 
 
 def feature_selection(train, X_val, target_col):
@@ -39,11 +40,11 @@ def learn_with_random_forest(train, target_col, val, output_dir='./results'):
 
     X_train = train.drop(columns=[target_col])
     y_train = train[target_col]
-    X_val = val.drop(columns=[target_col])
-    y_val = val[target_col]
+    X_val = val.drop(columns=[target_col]).iloc[:MAX_PREDICTIONS]
+    y_val = val[target_col].iloc[:MAX_PREDICTIONS]
 
     print(f"X_train: {X_train.shape}, y_train: {y_train.shape}")
-    print(f"X_val:   {X_val.shape},   y_val:   {y_val.shape}")
+    print(f"X_val:   {X_val.shape},   y_val:   {y_val.shape}  (limited to first {MAX_PREDICTIONS} cases for benchmark parity)")
 
     X_train, X_val = feature_selection(train, X_val, target_col)
 
